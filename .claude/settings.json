@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run typecheck 2>&1 | tail -20",
+            "description": "TypeCheck automatique après chaque modification de fichier"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:fix)",
+      "Bash(npm run test)",
+      "Bash(npm run test:ui)",
+      "Bash(npm run test:watch)",
+      "Bash(npm run format)",
+      "Bash(npx supabase *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log --oneline *)",
+      "Bash(find . -name '*.ts' -not -path '*/node_modules/*')",
+      "Bash(find . -name '*.tsx' -not -path '*/node_modules/*')",
+      "Bash(find . -type d -not -path '*/node_modules/*')",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(tree *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(npm publish)",
+      "Bash(git push --force *)"
+    ]
+  }
+}
