@@ -17,7 +17,7 @@ const engagementSchema = z.object({
   exerciceId:         z.string().min(1, 'Sélectionnez un exercice'),
   ligneBudgetaireId:  z.string().min(1, 'Sélectionnez une ligne budgétaire'),
   fournisseur:        z.string().max(300).optional(),
-  montantEngage:      z.number({ invalid_type_error: 'Entier requis' }).int().positive('Le montant doit être positif'),
+  montantEngage:      z.number({ error: 'Entier requis' }).int().positive('Le montant doit être positif'),
   referenceMarche:    z.string().max(100).optional(),
   referenceBonCmd:    z.string().max(100).optional(),
   dateEcheance:       z.string().optional(),

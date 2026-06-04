@@ -140,9 +140,9 @@ export function BudgetPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <CarteKPI titre="Budget total"   valeur={stats.totalCredits}    couleur="slate"  icone={<Wallet size={18} />} />
-        <CarteKPI titre="Engagé"         valeur={stats.totalEngage}     couleur="amber"  icone={<TrendingDown size={18} />} />
-        <CarteKPI titre="Disponible"     valeur={stats.totalDisponible} couleur="indigo" icone={<CheckCircle size={18} />} />
+        <CarteKPI titre="Budget total"   valeur={stats.totalCredits}    couleur="slate"  icone={Wallet} />
+        <CarteKPI titre="Engagé"         valeur={stats.totalEngage}     couleur="amber"  icone={TrendingDown} />
+        <CarteKPI titre="Disponible"     valeur={stats.totalDisponible} couleur="indigo" icone={CheckCircle} />
       </div>
 
       {/* Filtres */}

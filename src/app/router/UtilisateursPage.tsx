@@ -1,2 +1,1 @@
-import { PageStub } from './PageStub'
-export function UtilisateursPage() { return <PageStub titre="UtilisateursPage" /> }
+export { UtilisateursPage } from '@/features/administration/pages/UtilisateursPage'

@@ -1,2 +1,1 @@
-import { PageStub } from './PageStub'
-export function OrdonnanncementPage() { return <PageStub titre="OrdonnanncementPage" /> }
+export { OrdonnancementPage as OrdonnanncementPage } from '@/features/ordonnancement/pages/OrdonnancementPage'

@@ -1,2 +1,1 @@
-import { PageStub } from './PageStub'
-export function RecettesPage() { return <PageStub titre="RecettesPage" /> }
+export { RecettesPage } from '@/features/recettes/pages/RecettesPage'

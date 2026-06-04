@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, RotateCcw } from 'lucide-react'
 import { PageHeader } from '@/shared/components/PageHeader'
@@ -24,7 +24,7 @@ const STATUTS: { value: StatutEngagement | ''; label: string }[] = [
   { value: 'ANNULE', label: 'Annulé' },
 ]
 
-function KPICard({ label, valeur, couleur }: { label: string; valeur: number | string; couleur?: string }) {
+function KPICard({ label, valeur, couleur }: { label: string; valeur: ReactNode; couleur?: string }) {
   return (
     <div className={cn('rounded-lg border p-4', couleur ?? 'bg-white border-slate-200')}>
       <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>

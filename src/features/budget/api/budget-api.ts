@@ -1,5 +1,5 @@
 import { supabase } from '@/shared/lib/supabase'
-import type { ExerciceBudgetaire } from '@/shared/types'
+import type { ExerciceBudgetaire, NomenclatureBudgetaire } from '@/shared/types'
 import type { LigneBudgetaire, LigneBudgetaireInput, ModifCredit } from '../types'
 
 function mapLigne(row: Record<string, unknown>): LigneBudgetaire {
@@ -80,18 +80,48 @@ export async function createLigneBudgetaire(
   tenantId: string
 ): Promise<void> {
   const { error } = await supabase.from('lignes_budgetaires').insert({
-    tenant_id:      tenantId,
-    exercice_id:    input.exerciceId,
-    code_titre:     input.codeTitre,
-    code_chapitre:  input.codeChapitre,
-    code_article:   input.codeArticle,
-    code_paragraphe:input.codeParagraphe ?? null,
-    libelle:        input.libelle,
-    type_credit:    input.typeCredit,
-    credit_initial: input.creditInitial,
-    credit_revise:  input.creditInitial,
+    tenant_id:       tenantId,
+    exercice_id:     input.exerciceId,
+    nomenclature_id: input.nomenclatureId,
+    code_titre:      input.codeTitre,
+    code_chapitre:   input.codeChapitre,
+    code_article:    input.codeArticle,
+    code_paragraphe: input.codeParagraphe ?? null,
+    libelle:         input.libelle,
+    type_credit:     input.typeCredit,
+    credit_initial:  input.creditInitial,
+    credit_revise:   input.creditInitial,
   })
   if (error) throw new Error(error.message)
+}
+
+export async function fetchNomenclaturesForBudget(
+  tenantId: string
+): Promise<NomenclatureBudgetaire[]> {
+  const { data, error } = await supabase
+    .from('nomenclature_budgetaire')
+    .select('*')
+    .eq('actif', true)
+    .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
+    .order('code_article')
+
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).map((row) => ({
+    id:                row.id as string,
+    tenantId:          row.tenant_id as string | null,
+    codeTitre:         row.code_titre as string,
+    libelleTitre:      row.libelle_titre as string,
+    codeChapitre:      row.code_chapitre as string,
+    libelleChapitre:   row.libelle_chapitre as string,
+    codeArticle:       row.code_article as string,
+    libelleArticle:    row.libelle_article as string,
+    codeParagraphe:    row.code_paragraphe as string | undefined,
+    libelleParagraphe: row.libelle_paragraphe as string | undefined,
+    typeCredit:        row.type_credit as NomenclatureBudgetaire['typeCredit'],
+    actif:             row.actif as boolean,
+    createdAt:         row.created_at as string,
+  }))
 }
 
 export async function modifierCredit(

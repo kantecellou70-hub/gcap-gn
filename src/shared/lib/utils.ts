@@ -89,6 +89,7 @@ const ROLE_PERMISSIONS: Record<string, Role[]> = {
   'mandat.emit':         ['SUPER_ADMIN', 'ORDONNATEUR', 'DAFF'],
   'budget.modify':       ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'DAFF'],
   'users.manage':        ['SUPER_ADMIN', 'ADMIN_MINISTERE'],
+  'audit.consulter':     ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'AUDITEUR', 'CF'],
 }
 
 export function canDo(action: string, userRoles: Role[]): boolean {

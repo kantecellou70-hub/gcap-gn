@@ -1,2 +1,1 @@
-import { PageStub } from './PageStub'
-export function AuditPage() { return <PageStub titre="AuditPage" /> }
+export { AuditPage } from '@/features/audit/pages/AuditPage'

@@ -24,6 +24,7 @@ export interface LigneBudgetaire {
 
 export interface LigneBudgetaireInput {
   exerciceId: string
+  nomenclatureId: string
   codeTitre: string
   codeChapitre: string
   codeArticle: string

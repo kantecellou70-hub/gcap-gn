@@ -15,13 +15,22 @@ import { LiquidationsPage } from './LiquidationsPage'
 import { LiquidationFormPage } from './LiquidationFormPage'
 import { LiquidationDetailPage } from './LiquidationDetailPage'
 import { OrdonnanncementPage } from './OrdonnanncementPage'
+import { MandatFormPage } from './MandatFormPage'
+import { MandatDetailPage } from './MandatDetailPage'
 import { RecettesPage } from './RecettesPage'
+import { RecetteFormPage } from './RecetteFormPage'
+import { RecetteDetailPage } from './RecetteDetailPage'
 import { MatieresPage } from './MatieresPage'
+import { BienFormPage } from './BienFormPage'
+import { BienDetailPage } from './BienDetailPage'
 import { CompteAdminPage } from './CompteAdminPage'
 import { ReportingPage } from './ReportingPage'
 import { AuditPage } from './AuditPage'
 import { AdminPage } from './AdminPage'
 import { UtilisateursPage } from './UtilisateursPage'
+import { FournisseursPage } from './FournisseursPage'
+import { ExercicesPage } from './ExercicesPage'
+import { NomenclaturesPage } from '@/features/administration/pages/NomenclaturesPage'
 
 const router = createBrowserRouter([
   // ─── Routes publiques ─────────────────────────────────────
@@ -52,15 +61,25 @@ const router = createBrowserRouter([
       { path: '/liquidations/nouveau',      element: <LiquidationFormPage /> },
       { path: '/liquidations/:id',          element: <LiquidationDetailPage /> },
 
-      { path: '/ordonnancement',            element: <OrdonnanncementPage /> },
+      { path: '/ordonnancement',             element: <OrdonnanncementPage /> },
+      { path: '/ordonnancement/nouveau',    element: <MandatFormPage /> },
+      { path: '/ordonnancement/:id',        element: <MandatDetailPage /> },
       { path: '/recettes',                  element: <RecettesPage /> },
+      { path: '/recettes/nouveau',          element: <RecetteFormPage /> },
+      { path: '/recettes/:id',              element: <RecetteDetailPage /> },
       { path: '/matieres',                  element: <MatieresPage /> },
+      { path: '/matieres/nouveau',          element: <BienFormPage mode="create" /> },
+      { path: '/matieres/:id',              element: <BienDetailPage /> },
+      { path: '/matieres/:id/modifier',     element: <BienFormPage mode="edit" /> },
       { path: '/comptes-admin',             element: <CompteAdminPage /> },
       { path: '/reporting',                 element: <ReportingPage /> },
       { path: '/audit',                     element: <AuditPage /> },
 
-      { path: '/administration',            element: <AdminPage /> },
-      { path: '/administration/utilisateurs', element: <UtilisateursPage /> },
+      { path: '/administration',                   element: <AdminPage /> },
+      { path: '/administration/utilisateurs',      element: <UtilisateursPage /> },
+      { path: '/administration/exercices',         element: <ExercicesPage /> },
+      { path: '/administration/fournisseurs',      element: <FournisseursPage /> },
+      { path: '/administration/nomenclatures',     element: <NomenclaturesPage /> },
     ],
   },
 

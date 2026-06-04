@@ -8,6 +8,10 @@ export const PERMISSIONS = {
   MANDAT_EMIT:          'mandat.emit',
   BUDGET_MODIFY:        'budget.modify',
   USERS_MANAGE:         'users.manage',
+  AUDIT_CONSULTER:      'audit.consulter',
+  MATIERES_GERER:       'matieres.gerer',
+  MATIERES_VALIDER:     'matieres.valider',
+  INVENTAIRE_CLORE:     'inventaire.clore',
 } as const
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS]

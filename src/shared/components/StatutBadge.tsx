@@ -1,7 +1,7 @@
 import { cn } from '@/shared/lib/utils'
 import type { StatutEngagement, StatutMandat } from '@/shared/types'
 
-type StatutLiquidation = 'EN_COURS' | 'VALIDEE' | 'ANNULEE'
+type StatutLiquidation = 'BROUILLON' | 'SOUMISE' | 'EN_COURS' | 'VALIDEE' | 'REJETEE' | 'ANNULEE'
 
 const ENGAGEMENT_STYLES: Record<StatutEngagement, string> = {
   BROUILLON:       'bg-slate-100 text-slate-600',
@@ -24,11 +24,13 @@ const ENGAGEMENT_LABELS: Record<StatutEngagement, string> = {
 }
 
 const MANDAT_STYLES: Record<StatutMandat, string> = {
-  EMIS:            'bg-amber-100 text-amber-700',
-  TRANSMIS_TRESOR: 'bg-blue-100 text-blue-700',
+  EMIS:            'bg-blue-100 text-blue-700',
+  TRANSMIS_TRESOR: 'bg-amber-100 text-amber-700',
   PRIS_EN_CHARGE:  'bg-indigo-100 text-indigo-700',
   PAYE:            'bg-green-100 text-green-700',
   REJETE:          'bg-red-100 text-red-700',
+  REJETE_TRESOR:   'bg-red-100 text-red-700',
+  ANNULE:          'bg-slate-100 text-slate-500',
 }
 
 const MANDAT_LABELS: Record<StatutMandat, string> = {
@@ -37,18 +39,26 @@ const MANDAT_LABELS: Record<StatutMandat, string> = {
   PRIS_EN_CHARGE:  'Pris en charge',
   PAYE:            'Payé',
   REJETE:          'Rejeté',
+  REJETE_TRESOR:   'Rejeté Trésor',
+  ANNULE:          'Annulé',
 }
 
 const LIQUIDATION_STYLES: Record<StatutLiquidation, string> = {
-  EN_COURS: 'bg-amber-100 text-amber-700',
-  VALIDEE:  'bg-green-100 text-green-700',
-  ANNULEE:  'bg-gray-100 text-gray-500',
+  BROUILLON: 'bg-slate-100 text-slate-600',
+  SOUMISE:   'bg-blue-100 text-blue-700',
+  EN_COURS:  'bg-amber-100 text-amber-700',
+  VALIDEE:   'bg-green-100 text-green-700',
+  REJETEE:   'bg-red-100 text-red-700',
+  ANNULEE:   'bg-gray-100 text-gray-500',
 }
 
 const LIQUIDATION_LABELS: Record<StatutLiquidation, string> = {
-  EN_COURS: 'En cours',
-  VALIDEE:  'Validée',
-  ANNULEE:  'Annulée',
+  BROUILLON: 'Brouillon',
+  SOUMISE:   'Soumise',
+  EN_COURS:  'En cours',
+  VALIDEE:   'Validée',
+  REJETEE:   'Rejetée',
+  ANNULEE:   'Annulée',
 }
 
 interface StatutBadgeProps {

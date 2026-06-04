@@ -38,7 +38,7 @@ export interface UserProfile {
 
 // ─── Budget ────────────────────────────────────────────────────────────────
 
-export type StatutExercice = 'OUVERT' | 'CLOTURE' | 'ARCHIVE'
+export type StatutExercice = 'OUVERT' | 'APPROUVE' | 'RECTIFIE' | 'CLOTURE' | 'ARCHIVE'
 
 export interface ExerciceBudgetaire {
   id: string
@@ -47,6 +47,22 @@ export interface ExerciceBudgetaire {
   statut: StatutExercice
   dateOuverture: string
   dateCloture?: string
+}
+
+export interface NomenclatureBudgetaire {
+  id: string
+  tenantId: string | null
+  codeTitre: string
+  libelleTitre: string
+  codeChapitre: string
+  libelleChapitre: string
+  codeArticle: string
+  libelleArticle: string
+  codeParagraphe?: string
+  libelleParagraphe?: string
+  typeCredit: 'FONCTIONNEMENT' | 'INVESTISSEMENT' | 'TRANSFERT'
+  actif: boolean
+  createdAt: string
 }
 
 export interface LigneBudgetaire {
@@ -58,6 +74,7 @@ export interface LigneBudgetaire {
   codeArticle: string
   codeParagraphe?: string
   libelle: string
+  nomenclatureId?: string
   creditInitial: number       // En GNF — INTEGER
   creditRevise: number        // En GNF — INTEGER
   montantEngage: number       // En GNF — INTEGER
@@ -129,7 +146,13 @@ export interface Liquidation {
 
 // ─── Mandat ─────────────────────────────────────────────────────────────────
 
-export type ModePaiement = 'VIREMENT' | 'CHEQUE' | 'CAISSE'
+export type ModePaiement =
+  | 'VIREMENT'
+  | 'VIREMENT_BANCAIRE'
+  | 'CHEQUE'
+  | 'CHEQUE_TRESOR'
+  | 'CAISSE'
+  | 'MOBILE_MONEY'
 
 export type StatutMandat =
   | 'EMIS'
@@ -137,6 +160,8 @@ export type StatutMandat =
   | 'PRIS_EN_CHARGE'
   | 'PAYE'
   | 'REJETE'
+  | 'REJETE_TRESOR'
+  | 'ANNULE'
 
 export interface MandatPaiement {
   id: string

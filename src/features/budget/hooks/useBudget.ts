@@ -8,6 +8,7 @@ import {
   fetchExercices,
   createLigneBudgetaire,
   modifierCredit,
+  fetchNomenclaturesForBudget,
 } from '../api/budget-api'
 import type { LigneBudgetaireInput, ModifCredit } from '../types'
 
@@ -87,5 +88,15 @@ export function useMutationModifierCredit() {
       const msg = err instanceof Error ? err.message : 'Erreur inconnue'
       toast.error(`Modification impossible : ${msg}`)
     },
+  })
+}
+
+export function useNomenclaturesForBudget() {
+  const { tenantId } = useTenant()
+  return useQuery({
+    queryKey:  ['nomenclatures-budget', tenantId],
+    queryFn:   () => fetchNomenclaturesForBudget(tenantId!),
+    enabled:   !!tenantId,
+    staleTime: 300_000,
   })
 }
