@@ -167,3 +167,73 @@ export async function visaEngagement(input: VisaInput, tenantId: string, userId:
     visePar: userId,
   })
 }
+
+// ─── Pièces jointes ───────────────────────────────────────────────────────────
+
+export async function uploadPieceJointe(
+  engagementId: string,
+  tenantId: string,
+  file: File,
+  piecesActuelles: Engagement['piecesJointes']
+): Promise<Engagement['piecesJointes']> {
+  const ext  = file.name.split('.').pop() ?? 'bin'
+  const path = `${tenantId}/${engagementId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}.${ext}`
+    .replace(/\.{2,}/g, '.')
+
+  const { error: uploadError } = await supabase.storage
+    .from('engagements')
+    .upload(path, file, { upsert: false })
+
+  if (uploadError) throw new Error(uploadError.message)
+
+  const { data: urlData } = supabase.storage.from('engagements').getPublicUrl(path)
+
+  const nouvelle = {
+    nom:        file.name,
+    url:        urlData.publicUrl,
+    taille:     file.size,
+    type:       file.type,
+    uploadedAt: new Date().toISOString(),
+  }
+
+  const updated = [...piecesActuelles, nouvelle]
+
+  const { error: updateError } = await supabase
+    .from('engagements_depenses')
+    .update({ pieces_jointes: updated })
+    .eq('id', engagementId)
+    .eq('tenant_id', tenantId)
+
+  if (updateError) {
+    await supabase.storage.from('engagements').remove([path])
+    throw new Error(updateError.message)
+  }
+
+  return updated
+}
+
+export async function supprimerPieceJointe(
+  engagementId: string,
+  tenantId: string,
+  pieceUrl: string,
+  piecesActuelles: Engagement['piecesJointes']
+): Promise<Engagement['piecesJointes']> {
+  const url   = new URL(pieceUrl)
+  const parts = url.pathname.split('/object/public/engagements/')
+  const path  = parts[1] ?? ''
+
+  if (path) {
+    await supabase.storage.from('engagements').remove([path])
+  }
+
+  const updated = piecesActuelles.filter((p) => p.url !== pieceUrl)
+
+  const { error } = await supabase
+    .from('engagements_depenses')
+    .update({ pieces_jointes: updated })
+    .eq('id', engagementId)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(error.message)
+  return updated
+}

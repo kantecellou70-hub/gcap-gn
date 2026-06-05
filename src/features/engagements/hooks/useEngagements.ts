@@ -9,6 +9,8 @@ import {
   createEngagement,
   updateStatutEngagement,
   visaEngagement,
+  uploadPieceJointe,
+  supprimerPieceJointe,
 } from '../api/engagements-api'
 import type { EngagementFiltres, EngagementInput, VisaInput } from '../types'
 
@@ -112,5 +114,42 @@ export function useAnnulerEngagement() {
       toast.success('Engagement annulé.')
     },
     onError: () => toast.error('Impossible d\'annuler l\'engagement.'),
+  })
+}
+
+export function useUploadPieceJointe() {
+  const { tenantId } = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ engagementId, file, piecesActuelles }: {
+      engagementId: string
+      file: File
+      piecesActuelles: { nom: string; url: string; taille: number; type: string; uploadedAt: string }[]
+    }) => uploadPieceJointe(engagementId, tenantId!, file, piecesActuelles),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['engagement', vars.engagementId] })
+      toast.success('Pièce jointe ajoutée.')
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
+      toast.error(`Échec upload : ${msg}`)
+    },
+  })
+}
+
+export function useSupprimerPieceJointe() {
+  const { tenantId } = useTenant()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ engagementId, pieceUrl, piecesActuelles }: {
+      engagementId: string
+      pieceUrl: string
+      piecesActuelles: { nom: string; url: string; taille: number; type: string; uploadedAt: string }[]
+    }) => supprimerPieceJointe(engagementId, tenantId!, pieceUrl, piecesActuelles),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['engagement', vars.engagementId] })
+      toast.success('Pièce jointe supprimée.')
+    },
+    onError: () => toast.error('Impossible de supprimer la pièce jointe.'),
   })
 }

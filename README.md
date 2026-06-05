@@ -182,7 +182,9 @@ supabase/
     ├── 007_recettes_table.sql
     ├── 008_administration_tables.sql
     ├── 009_matieres.sql
-    └── 010_nomenclature_budgetaire.sql
+    ├── 010_nomenclature_budgetaire.sql
+    ├── 011_storage_engagements.sql
+    └── 012_exercices_rls_update.sql
 
 public/
 ├── favicon.svg         # Icône principale (carré arrondi)
@@ -210,16 +212,27 @@ src/assets/
 | `exercices_budgetaires` | Exercices budgétaires annuels |
 | `nomenclature_budgetaire` | Référentiel national des codes budgétaires (20 articles seed) |
 | `lignes_budgetaires` | Lignes budgétaires par exercice (liées à la nomenclature) |
-| `engagements_depenses` | Engagements + machine à états + pièces |
+| `engagements_depenses` | Engagements + machine à états + pièces jointes (Supabase Storage) |
 | `liquidations` | Liquidations liées aux engagements |
 | `mandats_paiement` | Mandats émis vers le Trésor |
 | `biens` | Inventaire matières (M6) — auto-numérotation INV-AAAA-CODE-XXXXXX |
 | `recettes` | Recettes non fiscales (M5) |
 | `audit_log` | Journal d'audit immuable (append-only) |
 
+### Storage Supabase
+
+| Bucket | Accès | Contenu |
+| ------ | ----- | ------- |
+| `engagements` | Privé, 10 Mo max | Pièces jointes des engagements (PDF, images, Word, Excel) |
+
 ### RLS
 
-Row Level Security activé sur toutes les tables. Chaque requête frontend filtre obligatoirement par `tenant_id`.
+Row Level Security activé sur toutes les tables et le bucket Storage. Chaque requête frontend filtre obligatoirement par `tenant_id`.
+
+| Table | Policies |
+| ----- | -------- |
+| `exercices_budgetaires` | SELECT (tenant) · INSERT/UPDATE (ADMIN_MINISTERE, SUPER_ADMIN) |
+| Toutes les autres tables | SELECT/INSERT/UPDATE restreints par tenant + rôle selon la table |
 
 ---
 

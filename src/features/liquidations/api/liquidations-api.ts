@@ -15,7 +15,7 @@ function mapLiquidation(row: Record<string, unknown>): Liquidation {
   const eng = row.engagement as Record<string, unknown> | null
   const lb  = eng ? (eng.ligne_budgetaire as Record<string, unknown> | null) : null
 
-  const retenuSource   = (row.retenu_source as number) ?? 0
+  const retenuSource   = (row.retenue_source as number) ?? 0
   const penaliteRetard = (row.penalite_retard as number) ?? 0
   const avanceRec      = (row.avance_recuperee as number) ?? 0
 
@@ -157,7 +157,7 @@ export async function createLiquidation(
       engagement_id:      input.engagementId,
       numero:             '',
       montant_liquide:    input.montantBrut,    // colonne DB = montant brut
-      retenu_source:      input.retenuSource,
+      retenue_source:     input.retenuSource,
       penalite_retard:    input.penaliteRetard,
       avance_recuperee:   input.avanceRecuperee,
       montant_deductions: input.retenuSource + input.penaliteRetard + input.avanceRecuperee,

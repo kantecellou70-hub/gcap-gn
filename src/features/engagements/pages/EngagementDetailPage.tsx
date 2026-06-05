@@ -9,6 +9,7 @@ import { formatDate, formatDateTime, canDo } from '@/shared/lib/utils'
 import { PERMISSIONS } from '@/shared/constants/permissions'
 import { useEngagement, useSoumettreEngagement, useViserEngagement, useAnnulerEngagement } from '../hooks/useEngagements'
 import { WorkflowTimeline } from '../components/WorkflowTimeline'
+import { PiecesJointesCard } from '../components/PiecesJointesCard'
 
 export function EngagementDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -200,12 +201,17 @@ export function EngagementDetailPage() {
           )}
         </div>
 
-        {/* Droite — Timeline */}
+        {/* Droite — Timeline + Pièces jointes */}
         <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-lg p-6">
             <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Workflow</h3>
             <WorkflowTimeline engagement={e} />
           </div>
+          <PiecesJointesCard
+            engagementId={e.id}
+            pieces={e.piecesJointes}
+            readOnly={e.statut !== 'BROUILLON' && e.statut !== 'REJETE'}
+          />
         </div>
       </div>
 

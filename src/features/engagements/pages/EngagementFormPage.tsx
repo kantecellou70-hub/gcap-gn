@@ -216,12 +216,14 @@ export function EngagementFormPage() {
             )}
           </div>
 
-          {/* Pièces jointes (placeholder) */}
+          {/* Pièces jointes */}
           <div className="bg-white border border-slate-200 rounded-lg p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">Pièces jointes</h3>
-            <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
-              <p className="text-xs text-slate-400">Disponible après création</p>
-              <p className="text-xs text-slate-400">PDF, images — 10 Mo max</p>
+            <div className="border-2 border-dashed border-slate-200 rounded-lg p-5 text-center">
+              <p className="text-xs text-slate-500 font-medium">Enregistrez d'abord le brouillon</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Vous pourrez joindre PDF, images, Word, Excel (10 Mo max) depuis la fiche de l'engagement.
+              </p>
             </div>
           </div>
         </div>
