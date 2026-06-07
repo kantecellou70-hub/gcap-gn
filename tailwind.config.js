@@ -40,6 +40,16 @@ export default {
         sans: ['IBM Plex Sans', 'system-ui', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
       },
+      keyframes: {
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '25%':      { transform: 'rotate(-12deg)' },
+          '75%':      { transform: 'rotate(12deg)' },
+        },
+      },
+      animation: {
+        wiggle: 'wiggle 0.4s ease-in-out 2',
+      },
     },
   },
   plugins: [],

@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
--- GCAP-GN — Migration 001 : Schéma initial
+-- GCAP-GN — Migration 001 : Schéma initial (idempotente)
 -- République de Guinée — Comptabilité Administrative Publique
 -- LYNXA SARL — Juin 2026
 -- ═══════════════════════════════════════════════════════════
@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_net";
 
 -- ─── TENANTS (Ministères / EPA) ──────────────────────────────────────────────
 
-CREATE TABLE tenants (
+CREATE TABLE IF NOT EXISTS tenants (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   code       VARCHAR(20) UNIQUE NOT NULL,
   nom        VARCHAR(200) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE tenants (
 
 -- ─── PROFILS UTILISATEURS ────────────────────────────────────────────────────
 
-CREATE TABLE user_profiles (
+CREATE TABLE IF NOT EXISTS user_profiles (
   id         UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   tenant_id  UUID        NOT NULL REFERENCES tenants(id),
   nom        VARCHAR(100) NOT NULL,
@@ -29,12 +29,13 @@ CREATE TABLE user_profiles (
   matricule  VARCHAR(50),
   poste      VARCHAR(200),
   telephone  VARCHAR(20),
+  actif      BOOLEAN     NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ─── RÔLES ───────────────────────────────────────────────────────────────────
 
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   tenant_id  UUID        NOT NULL REFERENCES tenants(id),
@@ -49,11 +50,13 @@ CREATE TABLE user_roles (
 
 -- ─── EXERCICES BUDGÉTAIRES ───────────────────────────────────────────────────
 
-CREATE TABLE exercices_budgetaires (
+CREATE TABLE IF NOT EXISTS exercices_budgetaires (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id      UUID        NOT NULL REFERENCES tenants(id),
   annee          INTEGER     NOT NULL CHECK (annee >= 2020 AND annee <= 2100),
-  statut         VARCHAR(20) NOT NULL DEFAULT 'OUVERT' CHECK (statut IN ('OUVERT', 'CLOTURE', 'ARCHIVE')),
+  statut         VARCHAR(20) NOT NULL DEFAULT 'OUVERT' CHECK (
+    statut IN ('OUVERT', 'APPROUVE', 'RECTIFIE', 'CLOTURE', 'ARCHIVE')
+  ),
   date_ouverture DATE        NOT NULL,
   date_cloture   DATE,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -62,7 +65,7 @@ CREATE TABLE exercices_budgetaires (
 
 -- ─── LIGNES BUDGÉTAIRES ──────────────────────────────────────────────────────
 
-CREATE TABLE lignes_budgetaires (
+CREATE TABLE IF NOT EXISTS lignes_budgetaires (
   id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id          UUID        NOT NULL REFERENCES tenants(id),
   exercice_id        UUID        NOT NULL REFERENCES exercices_budgetaires(id),
@@ -81,7 +84,7 @@ CREATE TABLE lignes_budgetaires (
 
 -- ─── ENGAGEMENTS DE DÉPENSES ─────────────────────────────────────────────────
 
-CREATE TABLE engagements_depenses (
+CREATE TABLE IF NOT EXISTS engagements_depenses (
   id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           UUID        NOT NULL REFERENCES tenants(id),
   numero              VARCHAR(50) UNIQUE NOT NULL,
@@ -105,7 +108,7 @@ CREATE TABLE engagements_depenses (
 
 -- ─── LIQUIDATIONS ────────────────────────────────────────────────────────────
 
-CREATE TABLE liquidations (
+CREATE TABLE IF NOT EXISTS liquidations (
   id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id          UUID        NOT NULL REFERENCES tenants(id),
   engagement_id      UUID        NOT NULL REFERENCES engagements_depenses(id),
@@ -123,7 +126,7 @@ CREATE TABLE liquidations (
 
 -- ─── MANDATS DE PAIEMENT ─────────────────────────────────────────────────────
 
-CREATE TABLE mandats_paiement (
+CREATE TABLE IF NOT EXISTS mandats_paiement (
   id                       UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id                UUID        NOT NULL REFERENCES tenants(id),
   liquidation_id           UUID        NOT NULL REFERENCES liquidations(id),
@@ -133,7 +136,7 @@ CREATE TABLE mandats_paiement (
   beneficiaire             VARCHAR(300) NOT NULL,
   rib                      VARCHAR(100),
   statut                   VARCHAR(30) NOT NULL DEFAULT 'EMIS' CHECK (statut IN (
-    'EMIS', 'TRANSMIS_TRESOR', 'PRIS_EN_CHARGE', 'PAYE', 'REJETE'
+    'EMIS', 'TRANSMIS_TRESOR', 'PRIS_EN_CHARGE', 'PAYE', 'REJETE', 'REJETE_TRESOR', 'ANNULE'
   )),
   date_emission            TIMESTAMPTZ NOT NULL DEFAULT now(),
   emis_par                 UUID        NOT NULL REFERENCES user_profiles(id),
@@ -143,7 +146,7 @@ CREATE TABLE mandats_paiement (
 
 -- ─── AUDIT LOG (immuable) ────────────────────────────────────────────────────
 
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
   id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  UUID         NOT NULL,
   user_id    UUID         NOT NULL,
@@ -157,19 +160,25 @@ CREATE TABLE audit_log (
   created_at TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
--- Pas de DELETE ni UPDATE sur audit_log
-CREATE RULE no_delete_audit AS ON DELETE TO audit_log DO INSTEAD NOTHING;
-CREATE RULE no_update_audit AS ON UPDATE TO audit_log DO INSTEAD NOTHING;
+-- Immuabilité : pas de DELETE ni UPDATE sur audit_log
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_rules WHERE tablename='audit_log' AND rulename='no_delete_audit') THEN
+    CREATE RULE no_delete_audit AS ON DELETE TO audit_log DO INSTEAD NOTHING;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_rules WHERE tablename='audit_log' AND rulename='no_update_audit') THEN
+    CREATE RULE no_update_audit AS ON UPDATE TO audit_log DO INSTEAD NOTHING;
+  END IF;
+END $$;
 
 -- ─── INDEX DE PERFORMANCE ────────────────────────────────────────────────────
 
-CREATE INDEX idx_engagements_tenant   ON engagements_depenses(tenant_id);
-CREATE INDEX idx_engagements_statut   ON engagements_depenses(tenant_id, statut);
-CREATE INDEX idx_engagements_exercice ON engagements_depenses(exercice_id);
-CREATE INDEX idx_liquidations_tenant  ON liquidations(tenant_id);
-CREATE INDEX idx_mandats_tenant       ON mandats_paiement(tenant_id);
-CREATE INDEX idx_lignes_exercice      ON lignes_budgetaires(exercice_id, tenant_id);
-CREATE INDEX idx_audit_tenant_date    ON audit_log(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_engagements_tenant   ON engagements_depenses(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_engagements_statut   ON engagements_depenses(tenant_id, statut);
+CREATE INDEX IF NOT EXISTS idx_engagements_exercice ON engagements_depenses(exercice_id);
+CREATE INDEX IF NOT EXISTS idx_liquidations_tenant  ON liquidations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_mandats_tenant       ON mandats_paiement(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_lignes_exercice      ON lignes_budgetaires(exercice_id, tenant_id);
+CREATE INDEX IF NOT EXISTS idx_audit_tenant_date    ON audit_log(tenant_id, created_at DESC);
 
 -- ─── ROW LEVEL SECURITY ──────────────────────────────────────────────────────
 
@@ -183,24 +192,25 @@ ALTER TABLE liquidations          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mandats_paiement      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log             ENABLE ROW LEVEL SECURITY;
 
--- Politique RLS : chaque utilisateur ne voit que les données de son tenant
--- (policies complètes par rôle dans la migration 002)
-
+DROP POLICY IF EXISTS "tenant_isolation" ON engagements_depenses;
 CREATE POLICY "tenant_isolation" ON engagements_depenses
   USING (tenant_id = (
     SELECT tenant_id FROM user_profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "tenant_isolation" ON liquidations;
 CREATE POLICY "tenant_isolation" ON liquidations
   USING (tenant_id = (
     SELECT tenant_id FROM user_profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "tenant_isolation" ON mandats_paiement;
 CREATE POLICY "tenant_isolation" ON mandats_paiement
   USING (tenant_id = (
     SELECT tenant_id FROM user_profiles WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "tenant_isolation" ON lignes_budgetaires;
 CREATE POLICY "tenant_isolation" ON lignes_budgetaires
   USING (tenant_id = (
     SELECT tenant_id FROM user_profiles WHERE id = auth.uid()
@@ -208,9 +218,9 @@ CREATE POLICY "tenant_isolation" ON lignes_budgetaires
 
 -- ─── DONNÉES DE RÉFÉRENCE ────────────────────────────────────────────────────
 
--- Tenants de démonstration
 INSERT INTO tenants (code, nom, type) VALUES
   ('MEFB',       'Ministère de l''Économie, des Finances et du Budget', 'MINISTERE'),
   ('MSANTE',     'Ministère de la Santé',                               'MINISTERE'),
   ('MEDUCATION', 'Ministère de l''Éducation Nationale',                 'MINISTERE'),
-  ('DEMO',       'Tenant de Démonstration',                             'EPA');
+  ('DEMO',       'Tenant de Démonstration',                             'EPA')
+ON CONFLICT (code) DO NOTHING;

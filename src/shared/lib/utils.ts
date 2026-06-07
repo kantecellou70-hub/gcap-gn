@@ -85,11 +85,17 @@ const ROLE_PERMISSIONS: Record<string, Role[]> = {
   'engagement.visa':     ['SUPER_ADMIN', 'CF'],
   'engagement.reject':   ['SUPER_ADMIN', 'CF'],
   'liquidation.create':  ['SUPER_ADMIN', 'DAFF', 'SAFF'],
-  'liquidation.validate':['SUPER_ADMIN', 'ORDONNATEUR', 'DAFF'],
+  // LOLF guinéenne : la validation de liquidation est une fonction comptable (DAFF).
+  // L'ORDONNATEUR ordonnance (mandats), il ne liquide pas.
+  'liquidation.validate':['SUPER_ADMIN', 'DAFF'],
   'mandat.emit':         ['SUPER_ADMIN', 'ORDONNATEUR', 'DAFF'],
   'budget.modify':       ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'DAFF'],
   'users.manage':        ['SUPER_ADMIN', 'ADMIN_MINISTERE'],
   'audit.consulter':     ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'AUDITEUR', 'CF'],
+  // M6 — Comptabilité matières
+  'matieres.gerer':      ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'COMPTABLE_MATIERES'],
+  'matieres.valider':    ['SUPER_ADMIN', 'ADMIN_MINISTERE'],
+  'inventaire.clore':    ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'COMPTABLE_MATIERES'],
 }
 
 export function canDo(action: string, userRoles: Role[]): boolean {

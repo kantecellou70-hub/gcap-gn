@@ -26,7 +26,9 @@ Développé par LYNXA SARL (LynxaTech) — Conakry, Guinée
 | **M10 — Administration** | ✅ Terminé | Utilisateurs, fournisseurs, exercices, nomenclatures |
 | **Audit** | ✅ Terminé | Journal immuable, lecture seule |
 | **Dashboard** | ✅ Terminé | Vue par rôle, alertes, KPIs |
-| **M6 — Tests étendus** | 🔜 À venir | Vitest sur fonctions critiques (crédits, workflow) |
+| **Tests RBAC** | ✅ Terminé | 63 tests Vitest — conformité institutionnelle guinéenne, séparation des fonctions |
+| **Identité visuelle** | ✅ Terminé | Logo `mark-square.svg` intégré (sidebar, login, reset) |
+| **Pièces jointes** | ✅ Terminé | Upload Supabase Storage sur engagements (PDF, images, Word, Excel) |
 | **PWA** | 🔜 À venir | Mode offline |
 | **Déploiement** | 🔜 À venir | Vercel + variables production |
 
@@ -166,10 +168,13 @@ src/
 │   ├── audit/          # Journal immuable
 │   └── dashboard/      # Tableau de bord multi-rôle
 └── shared/
-    ├── components/     # CarteKPI, DataTable, StatutBadge, MontantGNF…
+    ├── components/     # CarteKPI, DataTable, StatutBadge, MontantGNF, LogoGCAPGN…
     ├── constants/      # permissions.ts
-    ├── lib/            # supabase.ts, utils.ts, currency.ts
+    ├── lib/            # supabase.ts, utils.ts (canDo + ROLE_PERMISSIONS), currency.ts
     └── types/          # Types TypeScript globaux
+
+tests/
+└── rbac-conformite.test.ts   # 63 tests — conformité RBAC institutionnelle guinéenne
 
 supabase/
 └── migrations/
@@ -242,23 +247,26 @@ Row Level Security activé sur toutes les tables et le bucket Storage. Chaque re
 | ---- | --------------------- | ---------------- |
 | `SUPER_ADMIN` | DSI LYNXA / MEFB | Tout, multi-tenant |
 | `ADMIN_MINISTERE` | DAF du ministère | Gestion utilisateurs, budget, nomenclatures |
-| `ORDONNATEUR` | Ministre / SG | Validation, ordonnancement |
-| `DAFF` | Chef DAFF | Budgets, engagements, liquidations |
-| `SAFF` | Agent SAFF | Saisie engagements et liquidations |
-| `CF` | Contrôleur Financier (DNCF) | Visa / rejet des engagements |
+| `ORDONNATEUR` | Ministre / SG | Validation engagements, émission mandats |
+| `DAFF` | Chef DAFF | Budgets, engagements, liquidations, mandats |
+| `SAFF` | Agent SAFF | Saisie engagements et liquidations uniquement |
+| `CF` | Contrôleur Financier (DNCF) | Visa / rejet des engagements — exclusif |
 | `COMPTABLE_MATIERES` | Responsable BCM | Inventaire biens, synchronisation SICOM |
-| `AUDITEUR` | Cour des Comptes | Lecture seule |
+| `AUDITEUR` | Cour des Comptes | Lecture seule absolue — aucune écriture |
+
+La matrice de permissions est vérifiée par **63 tests Vitest** (`tests/rbac-conformite.test.ts`) qui couvrent chaque rôle et la séparation des fonctions (LOLF guinéenne).
 
 ---
 
 ## Sécurité
 
-- **RLS Supabase** activé sur toutes les tables — isolation tenant côté serveur
+- **RLS Supabase** activé sur toutes les tables et le bucket Storage — isolation tenant côté serveur
 - **Multi-tenant strict** — filtre `tenant_id` obligatoire sur chaque requête frontend
-- **RBAC** — vérification côté client (RoleGuard) + policies SQL côté serveur
-- **Audit log** immuable — chaque action sensible est tracée avec l'uid et le timestamp
-- **Séparation des fonctions** — enforced en base + frontend, conformément à la LOLF
+- **RBAC** — `canDo()` côté client + policies SQL côté serveur, 63 tests de conformité
+- **Séparation des fonctions** — ORDONNATEUR ≠ comptable, CF ne crée pas, AUDITEUR lecture seule (LOLF)
+- **Audit log** immuable — chaque action sensible tracée (uid, timestamp, payload)
 - **Montants INTEGER** — jamais de float/decimal pour éviter les erreurs d'arrondi en GNF
+- **Pièces jointes** — bucket Supabase Storage privé, 10 Mo max, types MIME restreints
 
 ---
 

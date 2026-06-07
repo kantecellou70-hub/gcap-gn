@@ -31,12 +31,15 @@ import { UtilisateursPage } from './UtilisateursPage'
 import { FournisseursPage } from './FournisseursPage'
 import { ExercicesPage } from './ExercicesPage'
 import { NomenclaturesPage } from '@/features/administration/pages/NomenclaturesPage'
+import { HealthPage } from './HealthPage'
+import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
 
 const router = createBrowserRouter([
   // ─── Routes publiques ─────────────────────────────────────
   { path: '/login',          element: <LoginPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
   { path: '/acces-refuse',   element: <AccesRefuse /> },
+  { path: '/health',         element: <HealthPage /> },
 
   // ─── Routes protégées (layout AppShell) ───────────────────
   {
@@ -80,6 +83,7 @@ const router = createBrowserRouter([
       { path: '/administration/exercices',         element: <ExercicesPage /> },
       { path: '/administration/fournisseurs',      element: <FournisseursPage /> },
       { path: '/administration/nomenclatures',     element: <NomenclaturesPage /> },
+      { path: '/notifications',                    element: <NotificationsPage /> },
     ],
   },
 
