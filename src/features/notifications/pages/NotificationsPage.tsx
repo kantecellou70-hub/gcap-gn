@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, CheckCheck, Clock, CheckCircle, XCircle, AlertTriangle, BarChart2 } from 'lucide-react'
+import { Bell, CheckCheck, Clock, CheckCircle, XCircle, AlertTriangle, BarChart2, FileCheck, CalendarOff } from 'lucide-react'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { cn } from '@/shared/lib/utils'
 import { useNotifications } from '../hooks/useNotifications'
@@ -26,6 +26,8 @@ function IconeType({ type }: { type: NotificationType }) {
     case 'engagement_rejete':      return <XCircle       size={16} className="text-red-500" />
     case 'mandat_rejete_tresor':   return <AlertTriangle size={16} className="text-red-500" />
     case 'budget_seuil_90':        return <BarChart2     size={16} className="text-orange-500" />
+    case 'liquidation_prete':      return <FileCheck     size={16} className="text-blue-500" />
+    case 'exercice_cloture':       return <CalendarOff   size={16} className="text-slate-500" />
     default:                       return <Bell          size={16} className="text-slate-400" />
   }
 }

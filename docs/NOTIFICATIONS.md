@@ -29,16 +29,16 @@
 
 ## Matrice des événements → destinataires
 
-| Événement | Type | Priorité | Destinataires |
-|-----------|------|----------|--------------|
-| Engagement soumis au CF | `engagement_visa_requis` | normale | CF |
-| Engagement visé | `engagement_vise` | normale | DAFF, SAFF |
-| Engagement rejeté | `engagement_rejete` | **urgente** | DAFF, SAFF, ORDONNATEUR |
-| Liquidation prête | `liquidation_prete` | normale | ORDONNATEUR |
-| Mandat émis | `mandat_emis` | normale | DAFF |
-| Mandat rejeté Trésor | `mandat_rejete_tresor` | **urgente** | ORDONNATEUR, DAFF |
-| Budget ligne à 90% | `budget_seuil_90` | **urgente** | ORDONNATEUR, ADMIN_MINISTERE |
-| Exercice clôturé | `exercice_cloture` | normale | Tous les utilisateurs du tenant |
+| Événement | Type | Priorité | Destinataires | Trigger | Email urgent |
+|-----------|------|----------|--------------|---------|--------------|
+| Engagement soumis au CF | `engagement_visa_requis` | normale | CF | ✅ Actif | Non |
+| Engagement visé | `engagement_vise` | normale | DAFF, SAFF | ✅ Actif | Non |
+| Engagement rejeté | `engagement_rejete` | **urgente** | DAFF, SAFF, ORDONNATEUR | ✅ Actif | Oui |
+| Liquidation validée | `liquidation_prete` | normale | ORDONNATEUR | ✅ Actif | Non |
+| Mandat émis | `mandat_emis` | normale | DAFF | ✅ Actif | Non |
+| Mandat rejeté Trésor | `mandat_rejete_tresor` | **urgente** | ORDONNATEUR, DAFF | ✅ Actif | Oui |
+| Budget ligne à 90% | `budget_seuil_90` | **urgente** | ORDONNATEUR, ADMIN_MINISTERE | ✅ Actif | Oui |
+| Exercice clôturé | `exercice_cloture` | normale | Tous les utilisateurs du tenant | ✅ Actif | Non |
 
 Les notifications **urgentes** déclenchent :
 

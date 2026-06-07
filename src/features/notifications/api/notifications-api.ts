@@ -68,6 +68,18 @@ export async function marquerLue(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+// Debounce par notification ID — évite les appels répétés si l'utilisateur clique rapidement
+const _debounceTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+export function marquerLueDebouncee(id: string): void {
+  const existing = _debounceTimers.get(id)
+  if (existing) clearTimeout(existing)
+  _debounceTimers.set(id, setTimeout(() => {
+    _debounceTimers.delete(id)
+    marquerLue(id).catch(console.error)
+  }, 300))
+}
+
 export async function marquerToutesLues(userId: string, tenantId: string): Promise<void> {
   const { error } = await supabase
     .from('notifications')
