@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS mandats_paiement (
 CREATE TABLE IF NOT EXISTS audit_log (
   id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  UUID         NOT NULL,
-  user_id    UUID         NOT NULL,
+  user_id    UUID,
   action     VARCHAR(100) NOT NULL,
   table_name VARCHAR(100) NOT NULL,
   record_id  UUID         NOT NULL,

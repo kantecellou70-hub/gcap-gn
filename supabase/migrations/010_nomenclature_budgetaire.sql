@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.nomenclature_budgetaire (
     type_credit IN ('FONCTIONNEMENT', 'INVESTISSEMENT', 'TRANSFERT')
   ),
   actif              BOOLEAN     NOT NULL DEFAULT TRUE,
-  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 
 );
 
@@ -37,7 +37,8 @@ CREATE INDEX IF NOT EXISTS idx_nomenclature_type_credit
 ALTER TABLE public.nomenclature_budgetaire ENABLE ROW LEVEL SECURITY;
 
 -- Lecture : tout utilisateur authentifié voit nationale + son tenant
-CREATE POLICY nomenclature_select ON public.nomenclature_budgetaire
+DROP POLICY IF EXISTS "nomenclature_select" ON public.nomenclature_budgetaire;
+CREATE POLICY "nomenclature_select" ON public.nomenclature_budgetaire
   FOR SELECT USING (
     tenant_id IS NULL
     OR tenant_id = (
@@ -46,7 +47,8 @@ CREATE POLICY nomenclature_select ON public.nomenclature_budgetaire
   );
 
 -- Écriture : SUPER_ADMIN uniquement
-CREATE POLICY nomenclature_insert ON public.nomenclature_budgetaire
+DROP POLICY IF EXISTS "nomenclature_insert" ON public.nomenclature_budgetaire;
+CREATE POLICY "nomenclature_insert" ON public.nomenclature_budgetaire
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.user_roles
@@ -54,7 +56,8 @@ CREATE POLICY nomenclature_insert ON public.nomenclature_budgetaire
     )
   );
 
-CREATE POLICY nomenclature_update ON public.nomenclature_budgetaire
+DROP POLICY IF EXISTS "nomenclature_update" ON public.nomenclature_budgetaire;
+CREATE POLICY "nomenclature_update" ON public.nomenclature_budgetaire
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM public.user_roles
