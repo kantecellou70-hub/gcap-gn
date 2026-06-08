@@ -5,7 +5,7 @@
 ```
 Événement DB (INSERT/UPDATE)
         ↓
-  Trigger SQL (014)
+  Trigger SQL (014 + 015)
         ↓
   dispatch_notification()        ← SECURITY DEFINER
         ↓
@@ -125,6 +125,29 @@ WHERE id = '<uuid-mandat>';
 
 - **RLS strict** : chaque utilisateur ne voit que ses propres notifications
 - **SECURITY DEFINER** : la fonction `dispatch_notification` tourne avec les droits système — les clients ne peuvent jamais insérer directement
-- **Canal Realtime isolé** : `notifications-user-{userId}` — jamais de canal global
+- **Canal Realtime isolé** : `notifications-user-{userId}-{instanceId}` — jamais de canal global, ID unique par instance de hook pour éviter les conflits multi-montage
 - **Cleanup** : `supabase.removeChannel()` au démontage du composant — pas de fuite WebSocket
 - **Pas de données sensibles** dans les métadonnées (montants oui, données personnelles non)
+- **GRANT SELECT/UPDATE limités** : rôle `authenticated` peut uniquement lire et marquer lu (`lu`, `lu_at`)
+
+---
+
+## Améliorations prévues V2
+
+### Notifications COMPTABLE_MATIERES
+
+En V1, le rôle `COMPTABLE_MATIERES` ne reçoit pas de notifications automatiques.
+En V2, ajouter la notification `mandat_emis` quand un mandat est lié à l'acquisition
+de biens (via jointure avec la table `biens`). Nécessite un champ `bien_id` optionnel
+sur `mandats_paiement`.
+
+### Archivage automatique
+
+Ajouter une colonne `archived_at` sur `notifications` et un job de nettoyage TTL
+(ex : archiver les notifications lues de plus de 90 jours) pour éviter la croissance
+infinie de la table.
+
+### Typage metadata par type
+
+Remplacer `metadata: Record<string, unknown>` par un type discriminé par `NotificationType`
+pour une meilleure sécurité de type dans les composants qui lisent les métadonnées.

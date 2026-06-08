@@ -108,6 +108,13 @@ export function NotificationPanel({
         )}
       </div>
 
+      {/* Indicateur de notifications cachées */}
+      {unreadCount > 15 && (
+        <div className="border-t border-slate-100 px-4 py-2 text-center text-[11px] text-slate-400">
+          +{unreadCount - 15} notification{unreadCount - 15 > 1 ? 's' : ''} non lue{unreadCount - 15 > 1 ? 's' : ''} — voir tout
+        </div>
+      )}
+
       {/* Footer */}
       <div className="border-t border-slate-100">
         <button

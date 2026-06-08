@@ -61,8 +61,8 @@ export function NotificationsPage() {
   const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
   const totalPages = Math.ceil(filtered.length / PER_PAGE)
 
-  async function handleClick(n: Notification) {
-    if (!n.lu) await markAsRead(n.id)
+  function handleClick(n: Notification) {
+    if (!n.lu) markAsRead(n.id)
     if (n.lien) navigate(n.lien)
   }
 
@@ -134,7 +134,7 @@ export function NotificationsPage() {
             <button
               key={n.id}
               type="button"
-              onClick={() => void handleClick(n)}
+              onClick={() => handleClick(n)}
               className={cn(
                 'w-full text-left flex items-start gap-4 px-5 py-4 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors',
                 !n.lu && 'bg-indigo-50/50'

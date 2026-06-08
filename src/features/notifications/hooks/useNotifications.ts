@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/shared/lib/supabase'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { useTenant } from '@/app/contexts/TenantContext'
 import {
   fetchNotifications,
-  marquerLue,
+  marquerLueDebouncee,
   marquerToutesLues,
 } from '../api/notifications-api'
 import type { Notification } from '../types'
@@ -14,7 +14,7 @@ export interface UseNotificationsReturn {
   notifications:  Notification[]
   unreadCount:    number
   isLoading:      boolean
-  markAsRead:     (id: string) => Promise<void>
+  markAsRead:     (id: string) => void
   markAllAsRead:  () => Promise<void>
 }
 
@@ -24,25 +24,19 @@ export function useNotifications(): UseNotificationsReturn {
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading]         = useState(true)
+  // Identifiant unique par instance du hook pour éviter les conflits de canal Realtime
+  // quand NotificationBell et NotificationsPage sont montés simultanément
+  const instanceId = useRef(`${Math.random().toString(36).slice(2)}`)
 
   const userId = profil?.id ?? null
 
   // Chargement initial
   useEffect(() => {
-    if (!userId || !tenantId) {
-      console.debug('[useNotifications] skip fetch — userId:', userId, 'tenantId:', tenantId)
-      return
-    }
-    console.debug('[useNotifications] fetching — userId:', userId, 'tenantId:', tenantId)
+    if (!userId || !tenantId) return
     setIsLoading(true)
     fetchNotifications(userId, tenantId)
-      .then((data) => {
-        console.debug('[useNotifications] fetched', data.length, 'notifications', data)
-        setNotifications(data)
-      })
-      .catch((err) => {
-        console.error('[useNotifications] fetch error:', err)
-      })
+      .then(setNotifications)
+      .catch(console.error)
       .finally(() => setIsLoading(false))
   }, [userId, tenantId])
 
@@ -51,7 +45,7 @@ export function useNotifications(): UseNotificationsReturn {
     if (!userId) return
 
     const channel = supabase
-      .channel(`notifications-user-${userId}`)
+      .channel(`notifications-user-${userId}-${instanceId.current}`)
       .on(
         'postgres_changes',
         {
@@ -104,8 +98,8 @@ export function useNotifications(): UseNotificationsReturn {
     }
   }, [userId])
 
-  const markAsRead = useCallback(async (id: string) => {
-    await marquerLue(id)
+  const markAsRead = useCallback((id: string) => {
+    // Mise à jour optimiste immédiate — l'appel Supabase est debounced (300ms)
     setNotifications((prev) =>
       prev.map((n) =>
         n.id === id
@@ -113,6 +107,7 @@ export function useNotifications(): UseNotificationsReturn {
           : n
       )
     )
+    marquerLueDebouncee(id)
   }, [])
 
   const markAllAsRead = useCallback(async () => {
