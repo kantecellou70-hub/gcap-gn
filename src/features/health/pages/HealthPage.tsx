@@ -112,6 +112,7 @@ export function HealthPage() {
               <CheckRow label="Supabase (connexion)"  result={report.checks.supabase} />
               <CheckRow label="Auth (service)"        result={report.checks.auth} />
               <CheckRow label="Base de données"       result={report.checks.database} />
+              <CheckRow label="Storage (fichiers)"    result={report.checks.storage} />
             </div>
           )}
         </div>
@@ -132,6 +133,12 @@ export function HealthPage() {
               <div className="flex justify-between">
                 <span className="text-slate-500">Environnement</span>
                 <span className="text-slate-700">{report.env}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Uptime</span>
+                <span className="text-slate-700 font-mono text-xs">
+                  {report.uptime_seconds}s
+                </span>
               </div>
               {lastRefresh && (
                 <div className="flex justify-between">
