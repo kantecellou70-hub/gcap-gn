@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/lib/supabase'
+import { ENGAGEMENT_LIST_SELECT, ENGAGEMENT_STATS_SELECT } from '@/shared/lib/supabaseSelects'
 import type { Engagement, EngagementFiltres, EngagementInput, VisaInput } from '../types'
 
 function mapEngagement(row: Record<string, unknown>): Engagement {
@@ -95,6 +96,47 @@ export async function fetchEngagement(id: string, tenantId: string): Promise<Eng
 
   if (error) throw new Error(error.message)
   return mapEngagement(data as Record<string, unknown>)
+}
+
+export async function fetchEngagementsPaginated(
+  filtres: EngagementFiltres,
+  tenantId: string,
+  page: number,
+  pageSize: number
+): Promise<{ data: Engagement[]; count: number }> {
+  let q = supabase
+    .from('engagements_depenses')
+    .select(ENGAGEMENT_LIST_SELECT, { count: 'exact' })
+    .eq('tenant_id', tenantId)
+    .order('date_creation', { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1)
+
+  if (filtres.statut)     q = q.eq('statut', filtres.statut)
+  if (filtres.exerciceId) q = q.eq('exercice_id', filtres.exerciceId)
+  if (filtres.search)     q = q.ilike('objet', `%${filtres.search}%`)
+
+  const { data, error, count } = await q
+  if (error) throw new Error(error.message)
+  return {
+    data:  (data ?? []).map((r) => mapEngagement(r as Record<string, unknown>)),
+    count: count ?? 0,
+  }
+}
+
+export async function fetchEngagementsStats(
+  filtres: Pick<EngagementFiltres, 'exerciceId'>,
+  tenantId: string
+): Promise<{ statut: string; montant_engage: number }[]> {
+  let q = supabase
+    .from('engagements_depenses')
+    .select(ENGAGEMENT_STATS_SELECT)
+    .eq('tenant_id', tenantId)
+
+  if (filtres.exerciceId) q = q.eq('exercice_id', filtres.exerciceId)
+
+  const { data, error } = await q
+  if (error) throw new Error(error.message)
+  return (data ?? []) as { statut: string; montant_engage: number }[]
 }
 
 export async function fetchEngagementsEnAttenteVisa(tenantId: string): Promise<Engagement[]> {

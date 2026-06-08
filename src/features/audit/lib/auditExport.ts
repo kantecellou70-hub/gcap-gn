@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf'
 import type { AuditLog, AuditFiltres } from '../types'
 
 const FMT_DATE = new Intl.DateTimeFormat('fr-GN', {
@@ -94,6 +93,7 @@ export async function exportAuditPdf(
   const truncated = entries.length > PDF_MAX
   const data = truncated ? entries.slice(0, PDF_MAX) : entries
 
+  const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()

@@ -6,11 +6,12 @@ import { DataTable, type ColonneDef } from '@/shared/components/DataTable'
 import { CarteKPI } from '@/shared/components/CarteKPI'
 import { StatutBadge } from '@/shared/components/StatutBadge'
 import { MontantGNF } from '@/shared/components/MontantGNF'
+import { ServerPaginationControls } from '@/shared/components/ServerPaginationControls'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { canDo } from '@/shared/lib/utils'
 import { formatDate } from '@/shared/lib/utils'
 import { PERMISSIONS } from '@/shared/constants/permissions'
-import { useLiquidations } from '../hooks/useLiquidations'
+import { useLiquidationsPaginated } from '../hooks/useLiquidations'
 import type { Liquidation, StatutLiquidation } from '../types'
 
 export function LiquidationsPage() {
@@ -24,13 +25,23 @@ export function LiquidationsPage() {
     search: recherche || undefined,
   }), [statutFiltre, recherche])
 
-  const { data: liquidations = [], isLoading } = useLiquidations(filtres)
+  const {
+    data: liquidations,
+    totalCount,
+    totalPages,
+    currentPage,
+    pageSize,
+    isLoading,
+    isFetching,
+    goToPage,
+  } = useLiquidationsPaginated(filtres)
+
   const canCreate = canDo(PERMISSIONS.LIQUIDATION_CREATE, profil?.roles ?? [])
 
   const stats = useMemo(() => ({
-    enCours:     liquidations.filter((l) => l.statut === 'SOUMISE').length,
-    validees:    liquidations.filter((l) => l.statut === 'VALIDEE').length,
-    montantNet:  liquidations.filter((l) => l.statut === 'VALIDEE').reduce((s, l) => s + l.montantNet, 0),
+    enCours:    liquidations.filter((l) => l.statut === 'SOUMISE').length,
+    validees:   liquidations.filter((l) => l.statut === 'VALIDEE').length,
+    montantNet: liquidations.filter((l) => l.statut === 'VALIDEE').reduce((s, l) => s + l.montantNet, 0),
   }), [liquidations])
 
   const colonnes: ColonneDef<Liquidation>[] = [
@@ -80,7 +91,7 @@ export function LiquidationsPage() {
     <div>
       <PageHeader
         titre="Liquidations"
-        description="Vérification du service fait et calcul du montant net dû"
+        description={`${totalCount} liquidation${totalCount > 1 ? 's' : ''} — vérification du service fait`}
         actions={
           canCreate ? (
             <button
@@ -96,9 +107,9 @@ export function LiquidationsPage() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <CarteKPI titre="Soumises"    valeur={stats.enCours}    couleur="amber"  icone={Clock} isLoading={isLoading} />
-        <CarteKPI titre="Validées"    valeur={stats.validees}   couleur="green"  icone={CheckCircle} isLoading={isLoading} />
-        <CarteKPI titre="Net liquidé" valeur={stats.montantNet} couleur="indigo" icone={XCircle} isLoading={isLoading} />
+        <CarteKPI titre="Soumises"    valeur={stats.enCours}    couleur="amber"  icone={Clock}        isLoading={isLoading} />
+        <CarteKPI titre="Validées"    valeur={stats.validees}   couleur="green"  icone={CheckCircle}  isLoading={isLoading} />
+        <CarteKPI titre="Net liquidé" valeur={stats.montantNet} couleur="indigo" icone={XCircle}      isLoading={isLoading} />
       </div>
 
       <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4">
@@ -131,6 +142,16 @@ export function LiquidationsPage() {
         isLoading={isLoading}
         getRowKey={(l) => l.id}
         onRowClick={(l) => navigate(`/liquidations/${l.id}`)}
+      />
+
+      <ServerPaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        isFetching={isFetching}
+        onPageChange={goToPage}
+        className="mt-0 rounded-b-lg px-4"
       />
     </div>
   )

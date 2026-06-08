@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf'
 import type { MandatPaiement } from '../types'
 
 function fmt(n: number) {
@@ -9,7 +8,8 @@ function fmtDate(d?: string) {
   return new Intl.DateTimeFormat('fr-GN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(d))
 }
 
-export function generateMandatPdf(mandat: MandatPaiement, nomMinistere: string): void {
+export async function generateMandatPdf(mandat: MandatPaiement, nomMinistere: string): Promise<void> {
+  const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const W = 210, marginL = 20, marginR = 20, textW = W - marginL - marginR
   let y = 20
@@ -49,9 +49,9 @@ export function generateMandatPdf(mandat: MandatPaiement, nomMinistere: string):
 
   // ── Tableau informations ──────────────────────────────────────────────────
   const rows: [string, string][] = [
-    ['Bénéficiaire',         mandat.beneficiaire],
-    ['Montant à payer',      fmt(mandat.montant)],
-    ['Mode de paiement',     mandat.modePaiement.replace('_', ' ')],
+    ['Bénéficiaire',     mandat.beneficiaire],
+    ['Montant à payer',  fmt(mandat.montant)],
+    ['Mode de paiement', mandat.modePaiement.replace('_', ' ')],
   ]
 
   if (mandat.banqueBeneficiaire)        rows.push(['Banque',  mandat.banqueBeneficiaire])

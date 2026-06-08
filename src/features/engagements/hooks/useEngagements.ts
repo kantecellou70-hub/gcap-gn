@@ -2,10 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useTenant } from '@/app/contexts/TenantContext'
 import { useAuth } from '@/app/contexts/AuthContext'
+import { useServerPagination } from '@/shared/hooks/useServerPagination'
+import { STALE_TIMES } from '@/shared/lib/queryClient'
 import {
   fetchEngagements,
   fetchEngagement,
   fetchEngagementsEnAttenteVisa,
+  fetchEngagementsPaginated,
+  fetchEngagementsStats,
   createEngagement,
   updateStatutEngagement,
   visaEngagement,
@@ -20,6 +24,26 @@ export function useEngagements(filtres: EngagementFiltres = {}) {
     queryKey: ['engagements', tenantId, filtres],
     queryFn:  () => fetchEngagements(filtres, tenantId!),
     enabled:  !!tenantId,
+    staleTime: STALE_TIMES.DYNAMIC,
+  })
+}
+
+export function useEngagementsStats(exerciceId?: string) {
+  const { tenantId } = useTenant()
+  return useQuery({
+    queryKey: ['engagements-stats', tenantId, exerciceId],
+    queryFn:  () => fetchEngagementsStats({ exerciceId }, tenantId!),
+    enabled:  !!tenantId,
+    staleTime: STALE_TIMES.DYNAMIC,
+  })
+}
+
+export function useEngagementsPaginated(filtres: EngagementFiltres = {}, pageSize = 25) {
+  const { tenantId } = useTenant()
+  return useServerPagination({
+    queryKey: ['engagements-paginated', tenantId ?? '', JSON.stringify(filtres)],
+    fetcher:  (page, size) => fetchEngagementsPaginated(filtres, tenantId!, page, size),
+    pageSize,
   })
 }
 
@@ -29,6 +53,7 @@ export function useEngagement(id: string) {
     queryKey: ['engagement', id, tenantId],
     queryFn:  () => fetchEngagement(id, tenantId!),
     enabled:  !!tenantId && !!id,
+    staleTime: STALE_TIMES.DYNAMIC,
   })
 }
 
@@ -38,6 +63,7 @@ export function useEngagementsEnAttenteVisa() {
     queryKey: ['engagements-attente-visa', tenantId],
     queryFn:  () => fetchEngagementsEnAttenteVisa(tenantId!),
     enabled:  !!tenantId,
+    staleTime: STALE_TIMES.DYNAMIC,
   })
 }
 
@@ -50,6 +76,8 @@ export function useCreerEngagement() {
       createEngagement(input, tenantId!, profil!.id, statut),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['engagements'] })
+      qc.invalidateQueries({ queryKey: ['engagements-paginated'] })
+      qc.invalidateQueries({ queryKey: ['engagements-stats'] })
       qc.invalidateQueries({ queryKey: ['lignes-budgetaires'] })
       toast.success(
         vars.statut === 'EN_ATTENTE_VISA'
@@ -72,6 +100,8 @@ export function useSoumettreEngagement() {
       updateStatutEngagement(id, 'EN_ATTENTE_VISA', tenantId!),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['engagements'] })
+      qc.invalidateQueries({ queryKey: ['engagements-paginated'] })
+      qc.invalidateQueries({ queryKey: ['engagements-stats'] })
       qc.invalidateQueries({ queryKey: ['engagement'] })
       toast.success('Engagement soumis au Contrôleur Financier.')
     },
@@ -88,6 +118,8 @@ export function useViserEngagement() {
       visaEngagement(input, tenantId!, profil!.id),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['engagements'] })
+      qc.invalidateQueries({ queryKey: ['engagements-paginated'] })
+      qc.invalidateQueries({ queryKey: ['engagements-stats'] })
       qc.invalidateQueries({ queryKey: ['engagement'] })
       qc.invalidateQueries({ queryKey: ['engagements-attente-visa'] })
       qc.invalidateQueries({ queryKey: ['lignes-budgetaires'] })
@@ -109,6 +141,8 @@ export function useAnnulerEngagement() {
       updateStatutEngagement(id, 'ANNULE', tenantId!, { motifRejet: motif }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['engagements'] })
+      qc.invalidateQueries({ queryKey: ['engagements-paginated'] })
+      qc.invalidateQueries({ queryKey: ['engagements-stats'] })
       qc.invalidateQueries({ queryKey: ['engagement'] })
       qc.invalidateQueries({ queryKey: ['lignes-budgetaires'] })
       toast.success('Engagement annulé.')

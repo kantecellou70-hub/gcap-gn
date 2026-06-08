@@ -7,11 +7,21 @@ on:
     branches: [main]
 
 # Secrets GitHub à configurer dans Settings → Secrets and variables → Actions :
-#   VERCEL_TOKEN         → Vercel Dashboard → Account Settings → Tokens
-#   VERCEL_ORG_ID        → Vercel Dashboard → Team Settings → General → Team ID
-#   VERCEL_PROJECT_ID    → Vercel Dashboard → Project → Settings → General → Project ID
-#   SUPABASE_ACCESS_TOKEN → Supabase Dashboard → Account → Access Tokens
-#   SUPABASE_PROJECT_REF  → Supabase Dashboard → Project → Settings → General (ex: uhvjqfzzmepguatexguu)
+#   VERCEL_TOKEN              → Vercel Dashboard → Account Settings → Tokens
+#   VERCEL_ORG_ID             → Vercel Dashboard → Team Settings → General → Team ID
+#   VERCEL_PROJECT_ID         → Vercel Dashboard → Project → Settings → General → Project ID
+#   SUPABASE_ACCESS_TOKEN      → Supabase Dashboard → Account → Access Tokens
+#   SUPABASE_PROJECT_REF       → Supabase Dashboard → Project → Settings → General
+#   VITE_SUPABASE_URL          → URL du projet Supabase de staging
+#   VITE_SUPABASE_ANON_KEY     → Clé anon Supabase de staging
+#   VITE_AUDIT_HMAC_SECRET     → Secret HMAC audit
+#   PLAYWRIGHT_STAGING_URL     → URL du déploiement preview Vercel
+#   PLAYWRIGHT_TEST_TENANT_ID  → UUID du tenant de test E2E
+#   PLAYWRIGHT_DAFF_EMAIL / PLAYWRIGHT_DAFF_PASSWORD
+#   PLAYWRIGHT_CF_EMAIL / PLAYWRIGHT_CF_PASSWORD / PLAYWRIGHT_TOTP_SECRET_CF
+#   PLAYWRIGHT_ORDONNATEUR_EMAIL / PLAYWRIGHT_ORDONNATEUR_PASSWORD / PLAYWRIGHT_TOTP_SECRET_ORDONNATEUR
+#   PLAYWRIGHT_SAFF_EMAIL / PLAYWRIGHT_SAFF_PASSWORD
+#   PLAYWRIGHT_AUDITEUR_EMAIL / PLAYWRIGHT_AUDITEUR_PASSWORD
 
 jobs:
   # ─── Qualité & Tests ────────────────────────────────────────────────────────
@@ -38,8 +48,27 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-      - name: Tests RBAC & unitaires (63 tests)
+      - name: Tests Vitest (RBAC + intégration)
         run: npm run test
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_AUDIT_HMAC_SECRET: ${{ secrets.VITE_AUDIT_HMAC_SECRET }}
+
+      - name: Couverture de code (seuils 70%)
+        run: npm run test:coverage
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_AUDIT_HMAC_SECRET: ${{ secrets.VITE_AUDIT_HMAC_SECRET }}
+
+      - name: Upload rapport de couverture
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
       - name: Build de production
         run: npm run build
@@ -49,6 +78,57 @@ jobs:
           VITE_APP_ENV: production
           VITE_APP_VERSION: ${{ github.ref_name }}
           VITE_DEFAULT_TENANT: mefb
+
+  # ─── Tests E2E Playwright ──────────────────────────────────────────────────
+  e2e:
+    name: Tests E2E Playwright
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests E2E
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_STAGING_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          PLAYWRIGHT_TEST_TENANT_ID: ${{ secrets.PLAYWRIGHT_TEST_TENANT_ID }}
+          PLAYWRIGHT_DAFF_EMAIL: ${{ secrets.PLAYWRIGHT_DAFF_EMAIL }}
+          PLAYWRIGHT_DAFF_PASSWORD: ${{ secrets.PLAYWRIGHT_DAFF_PASSWORD }}
+          PLAYWRIGHT_CF_EMAIL: ${{ secrets.PLAYWRIGHT_CF_EMAIL }}
+          PLAYWRIGHT_CF_PASSWORD: ${{ secrets.PLAYWRIGHT_CF_PASSWORD }}
+          PLAYWRIGHT_TOTP_SECRET_CF: ${{ secrets.PLAYWRIGHT_TOTP_SECRET_CF }}
+          PLAYWRIGHT_ORDONNATEUR_EMAIL: ${{ secrets.PLAYWRIGHT_ORDONNATEUR_EMAIL }}
+          PLAYWRIGHT_ORDONNATEUR_PASSWORD: ${{ secrets.PLAYWRIGHT_ORDONNATEUR_PASSWORD }}
+          PLAYWRIGHT_TOTP_SECRET_ORDONNATEUR: ${{ secrets.PLAYWRIGHT_TOTP_SECRET_ORDONNATEUR }}
+          PLAYWRIGHT_SAFF_EMAIL: ${{ secrets.PLAYWRIGHT_SAFF_EMAIL }}
+          PLAYWRIGHT_SAFF_PASSWORD: ${{ secrets.PLAYWRIGHT_SAFF_PASSWORD }}
+          PLAYWRIGHT_AUDITEUR_EMAIL: ${{ secrets.PLAYWRIGHT_AUDITEUR_EMAIL }}
+          PLAYWRIGHT_AUDITEUR_PASSWORD: ${{ secrets.PLAYWRIGHT_AUDITEUR_PASSWORD }}
+
+      - name: Upload rapport Playwright (en cas d'échec)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
   # ─── Déploiement Production (main) ─────────────────────────────────────────
   deploy-production:

@@ -6,11 +6,12 @@ import { DataTable, type ColonneDef } from '@/shared/components/DataTable'
 import { CarteKPI } from '@/shared/components/CarteKPI'
 import { StatutBadge } from '@/shared/components/StatutBadge'
 import { MontantGNF } from '@/shared/components/MontantGNF'
+import { ServerPaginationControls } from '@/shared/components/ServerPaginationControls'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { canDo } from '@/shared/lib/utils'
 import { formatDate } from '@/shared/lib/utils'
 import { PERMISSIONS } from '@/shared/constants/permissions'
-import { useMandats, useLiquidationsValidees } from '../hooks/useOrdonnancement'
+import { useMandatsPaginated, useLiquidationsValidees } from '../hooks/useOrdonnancement'
 import type { MandatPaiement, StatutMandat } from '../types'
 
 export function OrdonnancementPage() {
@@ -19,16 +20,27 @@ export function OrdonnancementPage() {
   const [statutFiltre, setStatutFiltre] = useState<StatutMandat | ''>('')
 
   const filtres = useMemo(() => ({ statut: statutFiltre || undefined }), [statutFiltre])
-  const { data: mandats = [],      isLoading }  = useMandats(filtres)
+
+  const {
+    data: mandats,
+    totalCount,
+    totalPages,
+    currentPage,
+    pageSize,
+    isLoading,
+    isFetching,
+    goToPage,
+  } = useMandatsPaginated(filtres)
+
   const { data: liquidations = [], isLoading: loadLiq } = useLiquidationsValidees()
 
   const canEmit = canDo(PERMISSIONS.MANDAT_EMIT, profil?.roles ?? [])
 
   const stats = useMemo(() => ({
-    emis:        mandats.filter((m) => m.statut === 'EMIS').length,
-    transmis:    mandats.filter((m) => m.statut === 'TRANSMIS_TRESOR').length,
-    payes:       mandats.filter((m) => m.statut === 'PAYE').length,
-    totalMandate:mandats.reduce((s, m) => s + m.montant, 0),
+    emis:         mandats.filter((m) => m.statut === 'EMIS').length,
+    transmis:     mandats.filter((m) => m.statut === 'TRANSMIS_TRESOR').length,
+    payes:        mandats.filter((m) => m.statut === 'PAYE').length,
+    totalMandate: mandats.reduce((s, m) => s + m.montant, 0),
   }), [mandats])
 
   const colonnes: ColonneDef<MandatPaiement>[] = [
@@ -83,7 +95,7 @@ export function OrdonnancementPage() {
     <div>
       <PageHeader
         titre="Ordonnancement — Mandats de paiement"
-        description="Émission et suivi des mandats"
+        description={`${totalCount} mandat${totalCount > 1 ? 's' : ''} — émission et suivi`}
         actions={
           canEmit ? (
             <button type="button" onClick={() => navigate('/ordonnancement/nouveau')}
@@ -131,6 +143,16 @@ export function OrdonnancementPage() {
         isLoading={isLoading}
         getRowKey={(m) => m.id}
         onRowClick={(m) => navigate(`/ordonnancement/${m.id}`)}
+      />
+
+      <ServerPaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        isFetching={isFetching}
+        onPageChange={goToPage}
+        className="mt-0 rounded-b-lg px-4"
       />
     </div>
   )

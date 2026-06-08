@@ -96,7 +96,7 @@ export function MandatDetailPage() {
         actions={
           <div className="flex items-center gap-2">
             <button type="button"
-              onClick={() => generateMandatPdf(mandat, tenant?.nom ?? 'Ministère')}
+              onClick={() => void generateMandatPdf(mandat, tenant?.nom ?? 'Ministère')}
               className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
               <Download size={15} /> Exporter PDF
             </button>

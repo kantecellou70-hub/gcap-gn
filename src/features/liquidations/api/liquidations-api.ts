@@ -1,15 +1,8 @@
 import { supabase } from '@/shared/lib/supabase'
+import { LIQUIDATION_LIST_SELECT, LIQUIDATION_DETAIL_SELECT } from '@/shared/lib/supabaseSelects'
 import type { Liquidation, LiquidationInput, LiquidationFiltres, EngagementVise } from '../types'
 
-const SELECT_FULL = `
-  *,
-  engagement:engagements_depenses(
-    numero, objet, fournisseur, montant_engage,
-    ligne_budgetaire:lignes_budgetaires(code_chapitre, libelle)
-  ),
-  createur:user_profiles!created_by(nom, prenom),
-  valideur:user_profiles!validated_by(nom, prenom)
-`
+const SELECT_FULL = LIQUIDATION_DETAIL_SELECT
 
 function mapLiquidation(row: Record<string, unknown>): Liquidation {
   const eng = row.engagement as Record<string, unknown> | null
@@ -76,6 +69,31 @@ export async function fetchLiquidations(
   const { data, error } = await q
   if (error) throw new Error(error.message)
   return (data ?? []).map((r) => mapLiquidation(r as Record<string, unknown>))
+}
+
+export async function fetchLiquidationsPaginated(
+  filtres: LiquidationFiltres,
+  tenantId: string,
+  page: number,
+  pageSize: number
+): Promise<{ data: Liquidation[]; count: number }> {
+  let q = supabase
+    .from('liquidations')
+    .select(LIQUIDATION_LIST_SELECT, { count: 'exact' })
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1)
+
+  if (filtres.statut)       q = q.eq('statut', filtres.statut)
+  if (filtres.engagementId) q = q.eq('engagement_id', filtres.engagementId)
+  if (filtres.search)       q = q.or(`numero.ilike.%${filtres.search}%,reference_pvsf.ilike.%${filtres.search}%`)
+
+  const { data, error, count } = await q
+  if (error) throw new Error(error.message)
+  return {
+    data:  (data ?? []).map((r) => mapLiquidation(r as Record<string, unknown>)),
+    count: count ?? 0,
+  }
 }
 
 export async function fetchLiquidation(id: string, tenantId: string): Promise<Liquidation> {

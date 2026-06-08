@@ -5,12 +5,18 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { DataTable, type ColonneDef } from '@/shared/components/DataTable'
 import { StatutBadge } from '@/shared/components/StatutBadge'
 import { MontantGNF } from '@/shared/components/MontantGNF'
+import { ServerPaginationControls } from '@/shared/components/ServerPaginationControls'
 import { RoleGuard } from '@/app/router/RoleGuard'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { useTenant } from '@/app/contexts/TenantContext'
 import { formatDate } from '@/shared/lib/utils'
 import { PERMISSIONS } from '@/shared/constants/permissions'
-import { useEngagements, useSoumettreEngagement, useAnnulerEngagement } from '../hooks/useEngagements'
+import {
+  useEngagementsPaginated,
+  useEngagementsStats,
+  useSoumettreEngagement,
+  useAnnulerEngagement,
+} from '../hooks/useEngagements'
 import type { Engagement, StatutEngagement } from '../types'
 import { cn } from '@/shared/lib/utils'
 
@@ -50,7 +56,20 @@ export function EngagementsPage() {
     search: searchDebounced || undefined,
   }), [statut, exerciceActif?.id, searchDebounced])
 
-  const { data: engagements = [], isLoading } = useEngagements(filtres)
+  const {
+    data: engagements,
+    totalCount,
+    totalPages,
+    currentPage,
+    pageSize,
+    isLoading,
+    isFetching,
+    goToPage,
+  } = useEngagementsPaginated(filtres)
+
+  // Requête légère pour les KPI agrégés (toutes les lignes, 2 colonnes uniquement)
+  const { data: statsRows = [] } = useEngagementsStats(exerciceActif?.id)
+
   const soumettre = useSoumettreEngagement()
   const annuler = useAnnulerEngagement()
 
@@ -61,11 +80,11 @@ export function EngagementsPage() {
   }, [])
 
   const stats = useMemo(() => ({
-    totalMontant: engagements.reduce((s, e) => s + e.montantEngage, 0),
-    countSoumis:  engagements.filter((e) => e.statut === 'EN_ATTENTE_VISA').length,
-    countVise:    engagements.filter((e) => e.statut === 'VISE').length,
-    countRejete:  engagements.filter((e) => e.statut === 'REJETE').length,
-  }), [engagements])
+    totalMontant: statsRows.reduce((s, e) => s + e.montant_engage, 0),
+    countSoumis:  statsRows.filter((e) => e.statut === 'EN_ATTENTE_VISA').length,
+    countVise:    statsRows.filter((e) => e.statut === 'VISE').length,
+    countRejete:  statsRows.filter((e) => e.statut === 'REJETE').length,
+  }), [statsRows])
 
   const colonnes: ColonneDef<Engagement>[] = [
     {
@@ -137,7 +156,7 @@ export function EngagementsPage() {
     <div>
       <PageHeader
         titre="Engagements"
-        description={`${engagements.length} engagement${engagements.length > 1 ? 's' : ''} · Exercice ${exerciceActif?.annee ?? '—'}`}
+        description={`${totalCount} engagement${totalCount > 1 ? 's' : ''} · Exercice ${exerciceActif?.annee ?? '—'}`}
         actions={
           <RoleGuard permission={PERMISSIONS.ENGAGEMENT_CREATE}>
             <button
@@ -154,7 +173,7 @@ export function EngagementsPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <KPICard label="Total engagé" valeur={<MontantGNF montant={stats.totalMontant} taille="md" />} />
+        <KPICard label="Total engagé (exercice)" valeur={<MontantGNF montant={stats.totalMontant} taille="md" />} />
         <KPICard label="En attente CF" valeur={stats.countSoumis} couleur="bg-blue-50 border-blue-200" />
         <KPICard label="Visés" valeur={stats.countVise} couleur="bg-green-50 border-green-200" />
         <KPICard label="Rejetés" valeur={stats.countRejete} couleur="bg-red-50 border-red-200" />
@@ -196,6 +215,16 @@ export function EngagementsPage() {
         isLoading={isLoading}
         getRowKey={(e) => e.id}
         onRowClick={(e) => navigate(`/engagements/${e.id}`)}
+      />
+
+      <ServerPaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        isFetching={isFetching}
+        onPageChange={goToPage}
+        className="mt-0 rounded-b-lg px-4"
       />
 
       {/* Dialog annulation */}

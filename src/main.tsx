@@ -12,3 +12,7 @@ createRoot(document.getElementById('root')!).render(
     </Providers>
   </StrictMode>,
 )
+
+if (import.meta.env.VITE_APP_ENV === 'production') {
+  import('./shared/lib/webVitals').then(({ initWebVitals }) => initWebVitals())
+}

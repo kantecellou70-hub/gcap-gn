@@ -1,10 +1,12 @@
 import { supabase } from '@/shared/lib/supabase'
+import { MANDAT_LIST_SELECT } from '@/shared/lib/supabaseSelects'
 import type {
   MandatPaiement, MandatInput, MandatFiltres,
   LiquidationValidee, EnregistrerPaiementInput,
 } from '../types'
 import type { StatutMandat } from '@/shared/types'
 
+// SELECT complet pour les vues détail (inclut les champs optionnels)
 const SELECT_FULL = `
   *,
   liquidation:liquidations(
@@ -70,6 +72,30 @@ export async function fetchMandats(filtres: MandatFiltres, tenantId: string): Pr
   const { data, error } = await q
   if (error) throw new Error(error.message)
   return (data ?? []).map((r) => mapMandat(r as Record<string, unknown>))
+}
+
+export async function fetchMandatsPaginated(
+  filtres: MandatFiltres,
+  tenantId: string,
+  page: number,
+  pageSize: number
+): Promise<{ data: MandatPaiement[]; count: number }> {
+  let q = supabase
+    .from('mandats_paiement')
+    .select(MANDAT_LIST_SELECT, { count: 'exact' })
+    .eq('tenant_id', tenantId)
+    .order('date_emission', { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1)
+
+  if (filtres.statut) q = q.eq('statut', filtres.statut)
+  if (filtres.search) q = q.ilike('numero', `%${filtres.search}%`)
+
+  const { data, error, count } = await q
+  if (error) throw new Error(error.message)
+  return {
+    data:  (data ?? []).map((r) => mapMandat(r as Record<string, unknown>)),
+    count: count ?? 0,
+  }
 }
 
 export async function fetchMandat(id: string, tenantId: string): Promise<MandatPaiement> {
