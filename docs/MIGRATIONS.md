@@ -18,8 +18,12 @@ dépend des tables créées par les précédentes.
 | 009a | `009_audit_triggers_rls.sql` | Triggers audit, fonction `fn_set_updated_at` |
 | 009b | `009_matieres.sql` | Table biens (M6), triggers inventaire SICOM |
 | 010 | `010_nomenclature_budgetaire.sql` | Référentiel nomenclature + 20 articles seed |
-| 011 | `011_storage_engagements.sql` | Bucket Supabase Storage pièces jointes |
-| 012 | `012_exercices_rls_update.sql` | Policies INSERT/UPDATE exercices budgétaires |
+| 011 | `011_storage_engagements.sql` | Bucket `engagements` (10 Mo, 8 MIME types), RLS upload/delete/select par tenant |
+| 012 | `012_exercices_rls_update.sql` | RLS complet exercices : SELECT tenant, INSERT/UPDATE (ORDONNATEUR/ADMIN/SUPER_ADMIN), helper `fn_has_role()` |
+| 013 | `013_notifications.sql` | Table notifications, types d'événements |
+| 014 | `014_notifications_triggers.sql` | Triggers notifications engagement/mandat/budget |
+| 015 | `015_notifications_triggers_manquants.sql` | Correctifs triggers liquidation + exercice_cloture |
+| 016 | `016_mfa_audit.sql` | Colonnes MFA user_profiles + vue v_mfa_compliance |
 
 > Le fichier `000_seed_check.sql` est un utilitaire de vérification, **pas une migration**.
 > Il ne doit pas être appliqué automatiquement — utiliser manuellement si besoin.

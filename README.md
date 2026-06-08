@@ -29,6 +29,8 @@ Développé par LYNXA SARL (LynxaTech) — Conakry, Guinée
 | **Tests RBAC** | ✅ Terminé | 63 tests Vitest — conformité institutionnelle guinéenne, séparation des fonctions |
 | **Identité visuelle** | ✅ Terminé | Logo `mark-square.svg` intégré (sidebar, login, reset) |
 | **Pièces jointes** | ✅ Terminé | Upload Supabase Storage sur engagements (PDF, images, Word, Excel) |
+| **Notifications** | ✅ Terminé | Notifications temps réel (cloche), triggers SQL sur engagement/liquidation/mandat/exercice |
+| **MFA** | ✅ Terminé | TOTP obligatoire (ORDONNATEUR, CF, SUPER_ADMIN), timeout inactivité 30 min, vue conformité |
 | **PWA** | 🔜 À venir | Mode offline |
 | **Déploiement** | 🔜 À venir | Vercel + variables production |
 
@@ -189,7 +191,11 @@ supabase/
     ├── 009_matieres.sql
     ├── 010_nomenclature_budgetaire.sql
     ├── 011_storage_engagements.sql
-    └── 012_exercices_rls_update.sql
+    ├── 012_exercices_rls_update.sql
+    ├── 013_notifications.sql
+    ├── 014_notifications_triggers.sql
+    ├── 015_notifications_triggers_manquants.sql
+    └── 016_mfa_audit.sql
 
 public/
 ├── favicon.svg         # Icône principale (carré arrondi)
@@ -222,13 +228,21 @@ src/assets/
 | `mandats_paiement` | Mandats émis vers le Trésor |
 | `biens` | Inventaire matières (M6) — auto-numérotation INV-AAAA-CODE-XXXXXX |
 | `recettes` | Recettes non fiscales (M5) |
+| `notifications` | Notifications métier temps réel (engagement, liquidation, mandat, exercice, budget) |
 | `audit_log` | Journal d'audit immuable (append-only) |
+
+### Fonctions SQL helpers
+
+| Fonction | Description |
+| -------- | ----------- |
+| `fn_get_tenant_id()` | Retourne le `tenant_id` de l'utilisateur courant (SECURITY DEFINER, sans récursion RLS) |
+| `fn_has_role(roles TEXT[])` | Vérifie qu'un rôle actif appartient au tenant courant — utilisé dans les policies INSERT/UPDATE |
 
 ### Storage Supabase
 
 | Bucket | Accès | Contenu |
 | ------ | ----- | ------- |
-| `engagements` | Privé, 10 Mo max | Pièces jointes des engagements (PDF, images, Word, Excel) |
+| `engagements` | Public (URLs directes), 10 Mo max, RLS upload/delete par tenant | Pièces jointes des engagements (PDF, images, Word, Excel) |
 
 ### RLS
 
@@ -236,7 +250,8 @@ Row Level Security activé sur toutes les tables et le bucket Storage. Chaque re
 
 | Table | Policies |
 | ----- | -------- |
-| `exercices_budgetaires` | SELECT (tenant) · INSERT/UPDATE (ADMIN_MINISTERE, SUPER_ADMIN) |
+| `exercices_budgetaires` | SELECT (tenant) · INSERT/UPDATE (ORDONNATEUR, ADMIN_MINISTERE, SUPER_ADMIN) · DELETE interdit |
+| `storage.objects` (bucket `engagements`) | SELECT/INSERT/DELETE restreints au `tenant_id` (1er segment du chemin) |
 | Toutes les autres tables | SELECT/INSERT/UPDATE restreints par tenant + rôle selon la table |
 
 ---
@@ -266,7 +281,9 @@ La matrice de permissions est vérifiée par **63 tests Vitest** (`tests/rbac-co
 - **Séparation des fonctions** — ORDONNATEUR ≠ comptable, CF ne crée pas, AUDITEUR lecture seule (LOLF)
 - **Audit log** immuable — chaque action sensible tracée (uid, timestamp, payload)
 - **Montants INTEGER** — jamais de float/decimal pour éviter les erreurs d'arrondi en GNF
-- **Pièces jointes** — bucket Supabase Storage privé, 10 Mo max, types MIME restreints
+- **Pièces jointes** — bucket Supabase Storage public (URLs directes), upload/delete RLS-isolés par tenant, 10 Mo max, types MIME restreints
+- **MFA** — TOTP obligatoire pour ORDONNATEUR, CF et SUPER_ADMIN · timeout inactivité 30 min · vue conformité `v_mfa_compliance`
+- **Notifications temps réel** — triggers SQL sur les événements métier clés, stockés en base et diffusés via Supabase Realtime
 
 ---
 
