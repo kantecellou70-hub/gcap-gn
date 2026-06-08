@@ -1,2 +1,4 @@
 export { AuditPage } from './pages/AuditPage'
-export type { AuditLog, AuditFiltres, AuditAction, AuditTable } from './types'
+export type { AuditLog, AuditEntry, AuditFiltres, AuditAction, AuditTable } from './types'
+export { logAuditEvent } from '@/shared/lib/auditLogger'
+export type { AuditEventParams } from '@/shared/lib/auditLogger'

@@ -1,22 +1,19 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Eye, Shield } from 'lucide-react'
+import { useState, useCallback, useRef } from 'react'
+import { Eye, Shield, Download, FileText, AlertTriangle } from 'lucide-react'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { DataTable, type ColonneDef } from '@/shared/components/DataTable'
 import { RoleGuard } from '@/app/router/RoleGuard'
 import { PERMISSIONS } from '@/shared/constants/permissions'
-import { useAuditLog, useAuditUsers } from '../hooks/useAuditLog'
-import { AuditDetailDialog } from '../components/AuditDetailDialog'
+import {
+  useAuditLog,
+  useAuditUsers,
+  useAuditActions,
+  useAuditExport,
+} from '../hooks/useAuditLog'
+import { AuditEntryDrawer } from '../components/AuditEntryDrawer'
+import { AuditFiltersBar } from '../components/AuditFiltersBar'
+import { SignatureStatusBadge } from '../components/SignatureStatusBadge'
 import type { AuditLog, AuditFiltres } from '../types'
-
-const TABLES_DISPONIBLES = [
-  { value: 'engagements_depenses',  label: 'Engagements' },
-  { value: 'liquidations',          label: 'Liquidations' },
-  { value: 'mandats_paiement',      label: 'Mandats de paiement' },
-  { value: 'recettes',              label: 'Recettes' },
-  { value: 'lignes_budgetaires',    label: 'Lignes budgétaires' },
-  { value: 'user_profiles',         label: 'Utilisateurs' },
-  { value: 'exercices_budgetaires', label: 'Exercices budgétaires' },
-]
 
 const ACTION_CONFIG: Record<string, { label: string; className: string }> = {
   INSERT: { label: 'Création',     className: 'bg-green-100 text-green-700' },
@@ -24,43 +21,54 @@ const ACTION_CONFIG: Record<string, { label: string; className: string }> = {
   DELETE: { label: 'Suppression',  className: 'bg-red-100 text-red-700' },
 }
 
-const PAGE_SIZE = 25
+function getActionCfg(action: string) {
+  if (ACTION_CONFIG[action]) return ACTION_CONFIG[action]
+  if (action.startsWith('engagement')) return { label: action, className: 'bg-blue-100 text-blue-700' }
+  if (action.startsWith('mandat'))     return { label: action, className: 'bg-purple-100 text-purple-700' }
+  if (action.startsWith('budget'))     return { label: action, className: 'bg-green-100 text-green-700' }
+  if (action.startsWith('auth'))       return { label: action, className: 'bg-slate-100 text-slate-600' }
+  return { label: action, className: 'bg-slate-100 text-slate-600' }
+}
+
+const PAGE_SIZE = 50
+const EMPTY_FILTRES: AuditFiltres = { pageSize: PAGE_SIZE }
 
 export function AuditPage() {
-  const [recherche,  setRecherche]  = useState('')
-  const [tableName,  setTableName]  = useState('')
-  const [userId,     setUserId]     = useState('')
-  const [dateDebut,  setDateDebut]  = useState('')
-  const [dateFin,    setDateFin]    = useState('')
-  const [page,       setPage]       = useState(1)
-  const [selected,   setSelected]   = useState<AuditLog | null>(null)
+  const [filtres,  setFiltres]  = useState<AuditFiltres>(EMPTY_FILTRES)
+  const [selected, setSelected] = useState<AuditLog | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const filtres = useMemo<AuditFiltres>(() => ({
-    search:    recherche  || undefined,
-    tableName: tableName  || undefined,
-    userId:    userId     || undefined,
-    dateDebut: dateDebut  || undefined,
-    dateFin:   dateFin    || undefined,
-    page,
-    pageSize: PAGE_SIZE,
-  }), [recherche, tableName, userId, dateDebut, dateFin, page])
-
-  const { data, isLoading }     = useAuditLog(filtres)
-  const { data: auditUsers = [] } = useAuditUsers()
+  const { data, isLoading }         = useAuditLog(filtres)
+  const { data: auditUsers = [] }   = useAuditUsers()
+  const { data: auditActions = [] } = useAuditActions()
+  const { exportCsv, exportPdf, isExporting, pdfWarning, clearPdfWarning } = useAuditExport(filtres)
 
   const logs  = data?.data  ?? []
   const total = data?.count ?? 0
 
-  const resetPage = useCallback(() => setPage(1), [])
+  const handleFiltresChange = useCallback((f: AuditFiltres) => {
+    setFiltres({ ...f, pageSize: PAGE_SIZE })
+  }, [])
+
+  const resetFiltres = useCallback(() => {
+    setFiltres(EMPTY_FILTRES)
+  }, [])
+
+  const handlePageChange = useCallback((p: number) => {
+    setFiltres((prev) => ({ ...prev, page: p }))
+  }, [])
 
   const colonnes: ColonneDef<AuditLog>[] = [
     {
       key: 'createdAt',
-      header: 'Horodatage',
+      header: 'Date/Heure',
       render: (log) => (
         <span className="text-xs tabular-nums text-slate-600 whitespace-nowrap">
           {log.createdAt
-            ? new Intl.DateTimeFormat('fr-GN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(log.createdAt))
+            ? new Intl.DateTimeFormat('fr-GN', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+              }).format(new Date(log.createdAt))
             : '—'}
         </span>
       ),
@@ -69,7 +77,7 @@ export function AuditPage() {
       key: 'userEmail',
       header: 'Utilisateur',
       render: (log) => (
-        <span className="text-sm text-slate-700">
+        <span className="text-xs text-slate-700 truncate max-w-[140px] block">
           {log.userEmail ?? <em className="text-slate-400">Système</em>}
         </span>
       ),
@@ -78,7 +86,7 @@ export function AuditPage() {
       key: 'action',
       header: 'Action',
       render: (log) => {
-        const cfg = ACTION_CONFIG[log.action] ?? { label: log.action, className: 'bg-slate-100 text-slate-600' }
+        const cfg = getActionCfg(log.action)
         return (
           <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${cfg.className}`}>
             {cfg.label}
@@ -95,14 +103,17 @@ export function AuditPage() {
     },
     {
       key: 'recordId',
-      header: 'Enregistrement',
+      header: 'Enreg.',
       render: (log) => {
         if (!log.recordId) return <span className="text-slate-400">—</span>
         const court = log.recordId.replace(/-/g, '').slice(0, 8).toUpperCase()
-        return (
-          <span className="font-mono text-xs text-indigo-600 font-medium">{court}</span>
-        )
+        return <span className="font-mono text-xs text-indigo-600 font-medium">{court}</span>
       },
+    },
+    {
+      key: 'signature',
+      header: 'Signature',
+      render: (log) => <SignatureStatusBadge entry={log} />,
     },
     {
       key: 'details',
@@ -130,79 +141,52 @@ export function AuditPage() {
         </div>
       }
     >
-      <div>
+      <div className="relative" ref={containerRef}>
         <PageHeader
           titre="Journal d'audit"
           description="Traçabilité complète des opérations — lecture seule immuable"
         />
 
-        {/* Filtres */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4 space-y-3">
-          <div className="flex flex-wrap gap-3">
-            <input
-              value={recherche}
-              onChange={(e) => { setRecherche(e.target.value); resetPage() }}
-              placeholder="Rechercher action, email, ID…"
-              className="flex-1 min-w-[220px] rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+        <AuditFiltersBar
+          filtres={filtres}
+          onChange={handleFiltresChange}
+          onReset={resetFiltres}
+          users={auditUsers}
+          actions={auditActions}
+        />
 
-            <select
-              aria-label="Filtrer par table"
-              value={tableName}
-              onChange={(e) => { setTableName(e.target.value); resetPage() }}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        {/* Barre d'actions */}
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <p className="text-sm text-slate-500">
+            {isLoading ? 'Chargement…' : `${total.toLocaleString('fr')} entrée${total > 1 ? 's' : ''}`}
+          </p>
+
+          <div className="flex items-center gap-2">
+            {pdfWarning && (
+              <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                <AlertTriangle size={12} />
+                PDF limité à 500 entrées — réduisez la plage de dates
+                <button type="button" onClick={clearPdfWarning} className="ml-1 text-amber-500 hover:text-amber-700">✕</button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={isExporting || total === 0}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="">Toutes les tables</option>
-              {TABLES_DISPONIBLES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-
-            {auditUsers.length > 0 && (
-              <select
-                aria-label="Filtrer par utilisateur"
-                value={userId}
-                onChange={(e) => { setUserId(e.target.value); resetPage() }}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Tous les utilisateurs</option>
-                {auditUsers.map((u) => (
-                  <option key={u.id} value={u.id}>{u.email}</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-3 items-center">
-            <label className="text-xs text-slate-500 font-medium">Période :</label>
-            <input
-              type="date"
-              value={dateDebut}
-              onChange={(e) => { setDateDebut(e.target.value); resetPage() }}
-              aria-label="Date de début"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <span className="text-slate-400 text-sm">→</span>
-            <input
-              type="date"
-              value={dateFin}
-              min={dateDebut || undefined}
-              onChange={(e) => { setDateFin(e.target.value); resetPage() }}
-              aria-label="Date de fin"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            {(dateDebut || dateFin || tableName || userId || recherche) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setRecherche(''); setTableName(''); setUserId('')
-                  setDateDebut(''); setDateFin(''); resetPage()
-                }}
-                className="text-xs text-slate-500 hover:text-slate-700 underline"
-              >
-                Effacer filtres
-              </button>
-            )}
+              <Download size={13} />
+              Exporter CSV
+            </button>
+            <button
+              type="button"
+              onClick={exportPdf}
+              disabled={isExporting || total === 0}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileText size={13} />
+              Exporter PDF
+            </button>
           </div>
         </div>
 
@@ -211,9 +195,9 @@ export function AuditPage() {
           donnees={logs}
           isLoading={isLoading}
           totalItems={total}
-          page={page}
+          page={filtres.page ?? 1}
           pageSize={PAGE_SIZE}
-          onPageChange={setPage}
+          onPageChange={handlePageChange}
           getRowKey={(log) => log.id}
         />
 
@@ -223,7 +207,7 @@ export function AuditPage() {
         </p>
 
         {selected && (
-          <AuditDetailDialog log={selected} onClose={() => setSelected(null)} />
+          <AuditEntryDrawer entry={selected} onClose={() => setSelected(null)} />
         )}
       </div>
     </RoleGuard>
