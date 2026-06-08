@@ -61,6 +61,12 @@ CREATE POLICY "notifications_update_lu" ON public.notifications
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
+-- ─── Permissions ──────────────────────────────────────────────────────────────
+
+GRANT SELECT                ON public.notifications TO authenticated;
+GRANT UPDATE (lu, lu_at)    ON public.notifications TO authenticated;
+GRANT SELECT                ON public.notifications TO anon;
+
 -- ─── Fonction dispatch_notification ──────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION public.dispatch_notification(

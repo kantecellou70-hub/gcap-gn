@@ -29,11 +29,20 @@ export function useNotifications(): UseNotificationsReturn {
 
   // Chargement initial
   useEffect(() => {
-    if (!userId || !tenantId) return
+    if (!userId || !tenantId) {
+      console.debug('[useNotifications] skip fetch — userId:', userId, 'tenantId:', tenantId)
+      return
+    }
+    console.debug('[useNotifications] fetching — userId:', userId, 'tenantId:', tenantId)
     setIsLoading(true)
     fetchNotifications(userId, tenantId)
-      .then(setNotifications)
-      .catch(console.error)
+      .then((data) => {
+        console.debug('[useNotifications] fetched', data.length, 'notifications', data)
+        setNotifications(data)
+      })
+      .catch((err) => {
+        console.error('[useNotifications] fetch error:', err)
+      })
       .finally(() => setIsLoading(false))
   }, [userId, tenantId])
 
