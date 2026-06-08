@@ -69,7 +69,8 @@ export function initWebVitals(): void {
         const e = entry as PerformanceEntry & { duration: number }
         logMetric('INP', e.duration, THRESHOLDS.INP)
       }
-    }).observe({ type: 'event', durationThreshold: 16, buffered: true })
+    // durationThreshold est une prop valide (spec W3C) mais absente du type TS 5.6
+    }).observe({ type: 'event', buffered: true } as PerformanceObserverInit)
   } catch { /* non supporté */ }
 }
 
