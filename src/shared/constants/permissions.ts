@@ -15,3 +15,12 @@ export const PERMISSIONS = {
 } as const
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS]
+
+import type { Role } from '@/shared/types'
+
+// Rôles pour lesquels le MFA TOTP est obligatoire (V1)
+export const MFA_REQUIRED_ROLES: Role[] = ['SUPER_ADMIN', 'ORDONNATEUR', 'CF']
+
+export function isMfaRequired(role: Role): boolean {
+  return MFA_REQUIRED_ROLES.includes(role)
+}

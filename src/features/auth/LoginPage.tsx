@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Clock } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { LogoGCAPGN } from '@/shared/components/LogoGCAPGN'
 import { cn } from '@/shared/lib/utils'
@@ -24,6 +24,8 @@ function translateAuthError(msg: string): string {
 export function LoginPage() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const timeoutReason = searchParams.get('reason') === 'timeout'
   const [showPassword, setShowPassword] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -64,6 +66,14 @@ export function LoginPage() {
             </p>
           </div>
         </div>
+
+        {/* Bandeau inactivité */}
+        {timeoutReason && (
+          <div className="mx-8 mb-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+            <Clock size={16} className="mt-0.5 shrink-0 text-amber-600" />
+            <span>Vous avez été déconnecté pour inactivité. Veuillez vous reconnecter.</span>
+          </div>
+        )}
 
         {/* Formulaire */}
         <form onSubmit={handleSubmit(onSubmit)} className="px-8 pb-6 flex flex-col gap-4">

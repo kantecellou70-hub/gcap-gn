@@ -55,7 +55,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED') {
+        // Silently update session — no profile reload needed
+        setUser(session?.user ?? null)
+        return
+      }
+
+      if (event === 'MFA_CHALLENGE_VERIFIED') {
+        // MFA verified — session is now aal2; reload profile to reflect updated assurance
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          fetchProfil(session.user.id).then((p) => {
+            if (p) setProfil(p)
+          })
+        }
+        return
+      }
+
+      if (event === 'USER_UPDATED') {
+        // e.g. after MFA enrollment — reload profile
+        if (session?.user) {
+          fetchProfil(session.user.id).then((p) => {
+            if (p) setProfil(p)
+          })
+        }
+        return
+      }
+
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchProfil(session.user.id).then((p) => {

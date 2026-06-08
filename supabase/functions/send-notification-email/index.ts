@@ -23,6 +23,7 @@ interface WebhookPayload {
   record: NotificationRecord
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function emailHtml(notif: NotificationRecord, userEmail: string): string {
   const lienAbsolu = notif.lien ? `${APP_URL}${notif.lien}` : APP_URL
   const couleurBadge = notif.priorite === 'urgente' ? '#DC2626' : '#4F46E5'

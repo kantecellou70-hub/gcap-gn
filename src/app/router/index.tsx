@@ -1,9 +1,12 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
+import { MfaGuard } from './MfaGuard'
 import { AppShell } from '@/app/layouts/AppShell'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
 import { AccesRefuse } from '@/features/auth/AccesRefuse'
+import { MfaEnrollPage } from '@/features/auth/mfa/pages/MfaEnrollPage'
+import { MfaChallengePage } from '@/features/auth/mfa/pages/MfaChallengePage'
 import { DashboardPage } from './DashboardPage'
 import { BudgetPage } from './BudgetPage'
 import { BudgetDetailPage } from './BudgetDetailPage'
@@ -41,49 +44,62 @@ const router = createBrowserRouter([
   { path: '/acces-refuse',   element: <AccesRefuse /> },
   { path: '/health',         element: <HealthPage /> },
 
-  // ─── Routes protégées (layout AppShell) ───────────────────
+  // ─── Routes protégées ─────────────────────────────────────
+  // Auth check (ProtectedRoute) → MFA check (MfaGuard) → AppShell
+  // Les pages /mfa/* sont sous ProtectedRoute mais hors MfaGuard
   {
-    element: (
-      <ProtectedRoute>
-        <AppShell />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <Navigate to="/tableau-de-bord" replace /> },
-      { path: '/tableau-de-bord',           element: <DashboardPage /> },
+      // Pages MFA : accès aux utilisateurs authentifiés, sans passer par MfaGuard
+      { path: '/mfa/enroll',    element: <MfaEnrollPage /> },
+      { path: '/mfa/challenge', element: <MfaChallengePage /> },
 
-      { path: '/budget',                    element: <BudgetPage /> },
-      { path: '/budget/:id',                element: <BudgetDetailPage /> },
+      // Toutes les autres routes protégées passent par MfaGuard puis AppShell
+      {
+        element: <MfaGuard />,
+        children: [
+          {
+            element: <AppShell />,
+            children: [
+              { index: true, element: <Navigate to="/tableau-de-bord" replace /> },
+              { path: '/tableau-de-bord',           element: <DashboardPage /> },
 
-      { path: '/engagements',               element: <EngagementsPage /> },
-      { path: '/engagements/nouveau',       element: <EngagementFormPage /> },
-      { path: '/engagements/:id',           element: <EngagementDetailPage /> },
-      { path: '/visa-cf',                   element: <VisaCFPage /> },
+              { path: '/budget',                    element: <BudgetPage /> },
+              { path: '/budget/:id',                element: <BudgetDetailPage /> },
 
-      { path: '/liquidations',              element: <LiquidationsPage /> },
-      { path: '/liquidations/nouveau',      element: <LiquidationFormPage /> },
-      { path: '/liquidations/:id',          element: <LiquidationDetailPage /> },
+              { path: '/engagements',               element: <EngagementsPage /> },
+              { path: '/engagements/nouveau',       element: <EngagementFormPage /> },
+              { path: '/engagements/:id',           element: <EngagementDetailPage /> },
+              { path: '/visa-cf',                   element: <VisaCFPage /> },
 
-      { path: '/ordonnancement',             element: <OrdonnanncementPage /> },
-      { path: '/ordonnancement/nouveau',    element: <MandatFormPage /> },
-      { path: '/ordonnancement/:id',        element: <MandatDetailPage /> },
-      { path: '/recettes',                  element: <RecettesPage /> },
-      { path: '/recettes/nouveau',          element: <RecetteFormPage /> },
-      { path: '/recettes/:id',              element: <RecetteDetailPage /> },
-      { path: '/matieres',                  element: <MatieresPage /> },
-      { path: '/matieres/nouveau',          element: <BienFormPage mode="create" /> },
-      { path: '/matieres/:id',              element: <BienDetailPage /> },
-      { path: '/matieres/:id/modifier',     element: <BienFormPage mode="edit" /> },
-      { path: '/comptes-admin',             element: <CompteAdminPage /> },
-      { path: '/reporting',                 element: <ReportingPage /> },
-      { path: '/audit',                     element: <AuditPage /> },
+              { path: '/liquidations',              element: <LiquidationsPage /> },
+              { path: '/liquidations/nouveau',      element: <LiquidationFormPage /> },
+              { path: '/liquidations/:id',          element: <LiquidationDetailPage /> },
 
-      { path: '/administration',                   element: <AdminPage /> },
-      { path: '/administration/utilisateurs',      element: <UtilisateursPage /> },
-      { path: '/administration/exercices',         element: <ExercicesPage /> },
-      { path: '/administration/fournisseurs',      element: <FournisseursPage /> },
-      { path: '/administration/nomenclatures',     element: <NomenclaturesPage /> },
-      { path: '/notifications',                    element: <NotificationsPage /> },
+              { path: '/ordonnancement',             element: <OrdonnanncementPage /> },
+              { path: '/ordonnancement/nouveau',    element: <MandatFormPage /> },
+              { path: '/ordonnancement/:id',        element: <MandatDetailPage /> },
+              { path: '/recettes',                  element: <RecettesPage /> },
+              { path: '/recettes/nouveau',          element: <RecetteFormPage /> },
+              { path: '/recettes/:id',              element: <RecetteDetailPage /> },
+              { path: '/matieres',                  element: <MatieresPage /> },
+              { path: '/matieres/nouveau',          element: <BienFormPage mode="create" /> },
+              { path: '/matieres/:id',              element: <BienDetailPage /> },
+              { path: '/matieres/:id/modifier',     element: <BienFormPage mode="edit" /> },
+              { path: '/comptes-admin',             element: <CompteAdminPage /> },
+              { path: '/reporting',                 element: <ReportingPage /> },
+              { path: '/audit',                     element: <AuditPage /> },
+
+              { path: '/administration',                   element: <AdminPage /> },
+              { path: '/administration/utilisateurs',      element: <UtilisateursPage /> },
+              { path: '/administration/exercices',         element: <ExercicesPage /> },
+              { path: '/administration/fournisseurs',      element: <FournisseursPage /> },
+              { path: '/administration/nomenclatures',     element: <NomenclaturesPage /> },
+              { path: '/notifications',                    element: <NotificationsPage /> },
+            ],
+          },
+        ],
+      },
     ],
   },
 

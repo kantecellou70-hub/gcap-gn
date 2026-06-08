@@ -13,14 +13,17 @@ const router = createBrowserRouter([
     element: <AccesRefuse />,
   },
   {
-    path: '/',
-    element: (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500">
-          Tableau de bord — à implémenter (B2)
-        </div>
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '/',
+        element: (
+          <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500">
+            Tableau de bord — à implémenter (B2)
+          </div>
+        ),
+      },
+    ],
   },
   {
     path: '*',
