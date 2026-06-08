@@ -21,25 +21,6 @@ function mapRow(row: Record<string, unknown>): AuditLog {
   }
 }
 
-function applyFilters(
-  query: ReturnType<typeof supabase.from>,
-  filtres: AuditFiltres
-) {
-  let q = query
-  if (filtres.action)     q = q.eq('action', filtres.action)
-  if (filtres.tableName)  q = q.eq('table_name', filtres.tableName)
-  if (filtres.userId)     q = q.eq('user_id', filtres.userId)
-  if (filtres.exerciceId) q = q.eq('exercice_id', filtres.exerciceId)
-  if (filtres.dateDebut)  q = q.gte('created_at', filtres.dateDebut)
-  if (filtres.dateFin)    q = q.lte('created_at', `${filtres.dateFin}T23:59:59`)
-  if (filtres.search) {
-    q = q.or(
-      `user_email.ilike.%${filtres.search}%,record_id.ilike.%${filtres.search}%`
-    )
-  }
-  return q
-}
-
 export async function fetchAuditLogs(
   filtres: AuditFiltres,
   tenantId: string
@@ -49,14 +30,26 @@ export async function fetchAuditLogs(
   const from     = (page - 1) * pageSize
   const to       = from + pageSize - 1
 
-  const base = supabase
+  let query = supabase
     .from('audit_log')
     .select('*', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .range(from, to)
 
-  const { data, error, count } = await applyFilters(base, filtres)
+  if (filtres.action)     query = query.eq('action', filtres.action)
+  if (filtres.tableName)  query = query.eq('table_name', filtres.tableName)
+  if (filtres.userId)     query = query.eq('user_id', filtres.userId)
+  if (filtres.exerciceId) query = query.eq('exercice_id', filtres.exerciceId)
+  if (filtres.dateDebut)  query = query.gte('created_at', filtres.dateDebut)
+  if (filtres.dateFin)    query = query.lte('created_at', `${filtres.dateFin}T23:59:59`)
+  if (filtres.search) {
+    query = query.or(
+      `user_email.ilike.%${filtres.search}%,record_id.ilike.%${filtres.search}%`
+    )
+  }
+
+  const { data, error, count } = await query
 
   if (error) throw new Error(error.message)
 
@@ -70,14 +63,26 @@ export async function fetchAuditForExport(
   tenantId: string,
   filtres: AuditFiltres
 ): Promise<AuditLog[]> {
-  const base = supabase
+  let query = supabase
     .from('audit_log')
     .select('*')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(10_000)
 
-  const { data, error } = await applyFilters(base, filtres)
+  if (filtres.action)     query = query.eq('action', filtres.action)
+  if (filtres.tableName)  query = query.eq('table_name', filtres.tableName)
+  if (filtres.userId)     query = query.eq('user_id', filtres.userId)
+  if (filtres.exerciceId) query = query.eq('exercice_id', filtres.exerciceId)
+  if (filtres.dateDebut)  query = query.gte('created_at', filtres.dateDebut)
+  if (filtres.dateFin)    query = query.lte('created_at', `${filtres.dateFin}T23:59:59`)
+  if (filtres.search) {
+    query = query.or(
+      `user_email.ilike.%${filtres.search}%,record_id.ilike.%${filtres.search}%`
+    )
+  }
+
+  const { data, error } = await query
 
   if (error) throw new Error(error.message)
 
