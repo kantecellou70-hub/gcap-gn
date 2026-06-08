@@ -9,14 +9,20 @@ function warnMissingSecret() {
   }
 }
 
-export async function signAuditEntry(entry: {
+export type AuditEntryToSign = {
   id: string
   tenantId: string
   userId: string | null
   action: string
   createdAt: string
-}): Promise<string> {
-  if (!HMAC_SECRET) {
+}
+
+export async function signAuditEntry(
+  entry: AuditEntryToSign,
+  secretOverride?: string
+): Promise<string> {
+  const secret = secretOverride ?? HMAC_SECRET
+  if (!secret) {
     warnMissingSecret()
     return ''
   }
@@ -31,7 +37,7 @@ export async function signAuditEntry(entry: {
 
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(HMAC_SECRET),
+    new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
@@ -45,9 +51,10 @@ export async function signAuditEntry(entry: {
 }
 
 export async function verifyAuditSignature(
-  entry: Parameters<typeof signAuditEntry>[0] & { signature: string | null }
+  entry: AuditEntryToSign & { signature: string | null },
+  secretOverride?: string
 ): Promise<boolean> {
   if (!entry.signature) return false
-  const expected = await signAuditEntry(entry)
+  const expected = await signAuditEntry(entry, secretOverride)
   return expected !== '' && expected === entry.signature
 }
