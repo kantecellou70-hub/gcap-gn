@@ -4,11 +4,15 @@ const SUPABASE_URL              = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const APP_URL                   = Deno.env.get('APP_URL') ?? 'https://gcap-gn.vercel.app'
 
-// Headers CORS standard Supabase Edge Functions
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Reflète les headers demandés (x-application-name, x-client-info, etc.)
+function corsHeaders(req: Request): Record<string, string> {
+  const requested = req.headers.get('access-control-request-headers')
+    ?? 'authorization, x-client-info, apikey, content-type'
+  return {
+    'Access-Control-Allow-Origin':  '*',
+    'Access-Control-Allow-Headers': requested,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  }
 }
 
 interface CreateUserPayload {
@@ -20,31 +24,22 @@ interface CreateUserPayload {
   tenant_id: string
 }
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-  })
-}
-
-function err(msg: string, status = 400) {
-  return new Response(msg, { status, headers: CORS_HEADERS })
-}
-
 Deno.serve(async (req: Request) => {
+  const cors = corsHeaders(req)
+
   // ── Preflight CORS ─────────────────────────────────────────────────────────
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS })
+    return new Response('ok', { headers: cors })
   }
 
   if (req.method !== 'POST') {
-    return err('Method not allowed', 405)
+    return new Response('Method not allowed', { status: 405, headers: cors })
   }
 
   // ── 1. Vérifier le JWT de l'appelant ──────────────────────────────────────
   const authHeader = req.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
-    return err('Missing authorization', 401)
+    return new Response('Missing authorization', { status: 401, headers: cors })
   }
   const jwt = authHeader.slice(7)
 
@@ -54,7 +49,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: { user: callerUser }, error: callerErr } = await supabaseAdmin.auth.getUser(jwt)
   if (callerErr || !callerUser) {
-    return err('Unauthorized', 401)
+    return new Response('Unauthorized', { status: 401, headers: cors })
   }
 
   // Vérifier SUPER_ADMIN via service role (bypasse RLS)
@@ -66,7 +61,7 @@ Deno.serve(async (req: Request) => {
 
   const isSuperAdmin = (callerRoles ?? []).some((r: { role: string }) => r.role === 'SUPER_ADMIN')
   if (!isSuperAdmin) {
-    return err('Forbidden — SUPER_ADMIN required', 403)
+    return new Response('Forbidden — SUPER_ADMIN required', { status: 403, headers: cors })
   }
 
   // ── 2. Parser le payload ───────────────────────────────────────────────────
@@ -74,12 +69,12 @@ Deno.serve(async (req: Request) => {
   try {
     payload = await req.json() as CreateUserPayload
   } catch {
-    return err('Invalid JSON', 400)
+    return new Response('Invalid JSON', { status: 400, headers: cors })
   }
 
   const { email, nom, prenom, poste, role, tenant_id } = payload
   if (!email || !nom || !prenom || !role || !tenant_id) {
-    return err('Missing required fields', 400)
+    return new Response('Missing required fields', { status: 400, headers: cors })
   }
 
   // ── 3. Vérifier que le tenant existe ──────────────────────────────────────
@@ -90,28 +85,33 @@ Deno.serve(async (req: Request) => {
     .single()
 
   if (tenantErr || !tenant) {
-    return err('Tenant not found', 404)
+    return new Response('Tenant not found', { status: 404, headers: cors })
   }
 
-  // ── 4. Générer le lien d'invitation ───────────────────────────────────────
+  // ── 4. Inviter l'utilisateur (Supabase envoie l'email d'invitation) ─────────
   const redirectTo = `${APP_URL}/auth/callback?next=/tableau-de-bord`
 
-  const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
-    type:    'invite',
+  const { data: inviteData, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
     email,
-    options: {
+    {
       redirectTo,
       data: { nom, prenom, poste: poste ?? null },
-    },
-  })
+    }
+  )
 
-  if (linkErr || !linkData) {
-    console.error('generateLink error:', linkErr?.message)
-    return err(`Cannot generate invite link: ${linkErr?.message}`, 500)
+  if (inviteErr || !inviteData?.user) {
+    console.error('inviteUserByEmail error:', inviteErr?.message)
+    return new Response(`Cannot invite user: ${inviteErr?.message}`, { status: 500, headers: cors })
   }
 
-  const userId     = linkData.user.id
-  const inviteLink = linkData.properties.action_link
+  const userId     = inviteData.user.id
+  // Lien de secours si RESEND est configuré — sinon Supabase a déjà envoyé l'email
+  const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+    type:    'invite',
+    email,
+    options: { redirectTo },
+  })
+  const inviteLink = linkData?.properties?.action_link ?? `${APP_URL}/login`
 
   // ── 5. Créer le profil utilisateur ────────────────────────────────────────
   const { error: profErr } = await supabaseAdmin.from('user_profiles').insert({
@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
 
   if (profErr) {
     console.error('user_profiles insert error:', profErr.message)
-    return err(`Cannot create profile: ${profErr.message}`, 500)
+    return new Response(`Cannot create profile: ${profErr.message}`, { status: 500, headers: cors })
   }
 
   // ── 6. Attribuer le rôle ──────────────────────────────────────────────────
@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
 
   if (roleErr) {
     console.error('user_roles insert error:', roleErr.message)
-    return err(`Cannot assign role: ${roleErr.message}`, 500)
+    return new Response(`Cannot assign role: ${roleErr.message}`, { status: 500, headers: cors })
   }
 
   // ── 7. Email de bienvenue (non-bloquant) ───────────────────────────────────
@@ -157,5 +157,8 @@ Deno.serve(async (req: Request) => {
     console.warn('Email sending failed (non-blocking):', emailErr)
   }
 
-  return json({ success: true, user_id: userId }, 201)
+  return new Response(JSON.stringify({ success: true, user_id: userId }), {
+    status:  201,
+    headers: { ...cors, 'Content-Type': 'application/json' },
+  })
 })
