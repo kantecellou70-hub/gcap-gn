@@ -63,9 +63,11 @@ function UserDropdown({ onStartTour }: UserDropdownProps) {
       const userName = `${profil.prenom} ${profil.nom}`
       const ministereNom = tenant?.nom ?? 'GCAP-GN'
       await genererManuelPdf(role, userName, ministereNom)
-      toast.success('Manuel téléchargé !', { id: toastId })
+      toast.dismiss(toastId)
+      toast.success('Manuel téléchargé !')
     } catch {
-      toast.error('Erreur lors de la génération du PDF.', { id: toastId })
+      toast.dismiss(toastId)
+      toast.error('Erreur lors de la génération du PDF.')
     } finally {
       setDownloadingPdf(false)
     }
