@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FileSpreadsheet } from 'lucide-react'
 import { formatGNF } from '@/shared/lib/utils'
+import { useTenant } from '@/app/contexts/TenantContext'
 import { useExecutionNationale, useNationalExercices } from '../hooks/useM9'
 import { MinistreDrawer } from '../components/MinistreDrawer'
 import type { ExecutionMinistere } from '../types'
@@ -17,6 +19,13 @@ export function M9Page() {
   const [ministereFiltre, setMinistereFiltre] = useState<string>('tous')
   const [ministereSelectionne, setMinistereSelectionne] = useState<ExecutionMinistere | null>(null)
   const [exporting, setExporting] = useState(false)
+  const { switchTenant } = useTenant()
+  const navigate = useNavigate()
+
+  async function handleVoirM7(tenantId: string) {
+    await switchTenant(tenantId)
+    navigate('/comptes-admin')
+  }
 
   const { data: exercices } = useNationalExercices()
   const { data: execution, isLoading } = useExecutionNationale(annee)
@@ -151,13 +160,13 @@ export function M9Page() {
                         ) : '—'}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <a
-                          href="/comptes-admin"
-                          onClick={(e) => e.stopPropagation()}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); void handleVoirM7(m.tenant_id) }}
                           className="text-xs text-indigo-500 hover:underline"
                         >
                           Voir M7
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   )

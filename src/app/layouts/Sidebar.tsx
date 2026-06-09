@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Wallet, FileText, ClipboardCheck, Send,
   TrendingUp, Package, BookOpen, BarChart2, Shield,
-  Settings, LogOut, Building2, BarChart, FileDown,
+  Settings, LogOut, Building2, BarChart, FileDown, ChevronsUpDown,
 } from 'lucide-react'
 import { LogoGCAPGN } from '@/shared/components/LogoGCAPGN'
 import { useAuth } from '@/app/contexts/AuthContext'
@@ -113,20 +113,54 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function Sidebar() {
   const { profil, signOut } = useAuth()
-  const { tenant } = useTenant()
+  const { tenantActif, tousLesTenants, switchTenant, resetTenant, isImpersonating } = useTenant()
 
   const roles = profil?.roles ?? []
   const primaryRole = roles[0] ?? ''
+  const isSuperAdmin = roles.includes('SUPER_ADMIN')
+
+  async function handleTenantChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value
+    if (val === '__origine__') {
+      resetTenant()
+    } else {
+      await switchTenant(val)
+    }
+  }
 
   return (
     <aside className="w-56 shrink-0 bg-slate-900 flex flex-col h-screen">
       {/* En-tête */}
       <div className="px-4 py-4 border-b border-slate-800">
         <LogoGCAPGN size="sm" variant="light" />
-        {tenant && (
-          <p className="mt-2 text-xs text-slate-500 truncate" title={tenant.nom}>
-            {tenant.nom.length > 22 ? tenant.nom.slice(0, 20) + '…' : tenant.nom}
-          </p>
+
+        {/* Dropdown tenant SUPER_ADMIN */}
+        {isSuperAdmin ? (
+          <div className="mt-2 relative">
+            <select
+              aria-label="Sélectionner un tenant"
+              value={tenantActif?.id ?? ''}
+              onChange={handleTenantChange}
+              className={cn(
+                'w-full appearance-none rounded-md px-2 py-1.5 pr-7 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer',
+                isImpersonating
+                  ? 'bg-blue-700 text-blue-100 border border-blue-500'
+                  : 'bg-slate-800 text-slate-300 border border-slate-700'
+              )}
+            >
+              <option value="__origine__">Vue nationale MEFB</option>
+              {tousLesTenants.map((t) => (
+                <option key={t.id} value={t.id}>{t.nom}</option>
+              ))}
+            </select>
+            <ChevronsUpDown size={11} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
+          </div>
+        ) : (
+          tenantActif && (
+            <p className="mt-2 text-xs text-slate-500 truncate" title={tenantActif.nom}>
+              {tenantActif.nom.length > 22 ? tenantActif.nom.slice(0, 20) + '…' : tenantActif.nom}
+            </p>
+          )
         )}
       </div>
 

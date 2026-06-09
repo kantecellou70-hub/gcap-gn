@@ -107,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    sessionStorage.removeItem('gcap-active-tenant-id')
     await supabase.auth.signOut()
     setProfil(null)
     setUser(null)

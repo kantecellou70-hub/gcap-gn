@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { useInactivityTimeout } from '@/shared/hooks/useInactivityTimeout'
 import { SessionWarningModal } from '@/features/auth/components/SessionWarningModal'
+import { ImpersonationBanner } from '@/shared/components/ImpersonationBanner'
 import { supabase } from '@/shared/lib/supabase'
 
 export function AppShell() {
@@ -37,6 +38,7 @@ export function AppShell() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-0">
         <TopBar />
+        <ImpersonationBanner />
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>

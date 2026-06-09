@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { X, TrendingUp, FileText, CreditCard, ArrowUpDown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, TrendingUp, FileText, CreditCard, ArrowUpDown, ExternalLink } from 'lucide-react'
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts'
 import { formatGNF } from '@/shared/lib/utils'
+import { useTenant } from '@/app/contexts/TenantContext'
 import { useEvolutionMensuelle } from '../hooks/useM9'
 import type { ExecutionMinistere } from '../types'
 
@@ -214,6 +216,14 @@ const ONGLETS: { id: Onglet; label: string; icon: React.ElementType }[] = [
 
 export function MinistreDrawer({ ministere, onClose }: Props) {
   const [onglet, setOnglet] = useState<Onglet>('budget')
+  const { switchTenant } = useTenant()
+  const navigate = useNavigate()
+
+  async function ouvrirInterfaceComplete() {
+    await switchTenant(ministere.tenant_id)
+    onClose()
+    navigate('/tableau-de-bord')
+  }
 
   return (
     <div className="fixed inset-y-0 right-0 z-40 flex">
@@ -264,6 +274,18 @@ export function MinistreDrawer({ ministere, onClose }: Props) {
           {onglet === 'engagements' && <EngagementsOnglet m={ministere} />}
           {onglet === 'paiements'   && <PaiementsOnglet m={ministere} />}
           {onglet === 'recettes'    && <RecettesOnglet m={ministere} />}
+        </div>
+
+        {/* Footer — action d'inspection */}
+        <div className="px-5 py-3 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={ouvrirInterfaceComplete}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+          >
+            <ExternalLink size={14} />
+            Ouvrir l'interface complète
+          </button>
         </div>
       </aside>
     </div>
