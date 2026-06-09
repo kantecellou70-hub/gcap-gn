@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { useTenant } from '@/app/contexts/TenantContext'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
+import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt'
 
 const BREADCRUMB_MAP: Record<string, string> = {
   '/tableau-de-bord': 'Tableau de bord',
@@ -108,8 +109,9 @@ export function TopBar() {
         </span>
       )}
 
-      {/* Droite : notifs + user */}
+      {/* Droite : install PWA + notifs + user */}
       <div className="flex items-center gap-1">
+        <PwaInstallPrompt />
         <NotificationBell />
         <UserDropdown />
       </div>

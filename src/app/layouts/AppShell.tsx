@@ -6,11 +6,16 @@ import { TopBar } from './TopBar'
 import { useInactivityTimeout } from '@/shared/hooks/useInactivityTimeout'
 import { SessionWarningModal } from '@/features/auth/components/SessionWarningModal'
 import { ImpersonationBanner } from '@/shared/components/ImpersonationBanner'
+import { NetworkStatusBar } from '@/shared/components/NetworkStatusBar'
+import { PwaUpdatePrompt } from '@/shared/components/PwaUpdatePrompt'
+import { useOfflineCache } from '@/shared/hooks/useOfflineCache'
 import { supabase } from '@/shared/lib/supabase'
 
 export function AppShell() {
   const navigate = useNavigate()
   const [showWarning, setShowWarning] = useState(false)
+  // Peuple IndexedDB en arrière-plan dès le chargement
+  useOfflineCache()
 
   const { resetTimer, remainingMs } = useInactivityTimeout({
     onWarning: () => setShowWarning(true),
@@ -37,8 +42,10 @@ export function AppShell() {
       )}
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-0">
+        <PwaUpdatePrompt />
         <TopBar />
         <ImpersonationBanner />
+        <NetworkStatusBar />
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>

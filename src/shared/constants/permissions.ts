@@ -13,6 +13,7 @@ export const PERMISSIONS = {
   MATIERES_VALIDER:        'matieres.valider',
   INVENTAIRE_CLORE:        'inventaire.clore',
   CONSOLIDATION_NATIONALE: 'consolidation.nationale',
+  TENANTS_MANAGE:          'tenants.manage',
 } as const
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS]

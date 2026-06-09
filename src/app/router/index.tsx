@@ -35,6 +35,9 @@ import { NomenclaturesPage } from '@/features/administration/pages/Nomenclatures
 import { HealthPage } from './HealthPage'
 import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
 
+// Module SUPER_ADMIN — Gestion des tenants
+const GestionTenantsPage = lazy(() => import('./GestionTenantsPage').then((m) => ({ default: m.GestionTenantsPage })))
+
 // Modules lourds — chargés uniquement à la navigation (recharts, jsPDF, xlsx)
 const MatieresPage     = lazy(() => import('./MatieresPage').then((m) => ({ default: m.MatieresPage })))
 const BienFormPage     = lazy(() => import('./BienFormPage').then((m) => ({ default: m.BienFormPage })))
@@ -131,6 +134,14 @@ const router = createBrowserRouter([
                 element: (
                   <RoleGuard permission={PERMISSIONS.CONSOLIDATION_NATIONALE} fallback={<AccesRefuse />}>
                     <LazyPage><LolfExportPage /></LazyPage>
+                  </RoleGuard>
+                ),
+              },
+              {
+                path: '/super-admin/tenants',
+                element: (
+                  <RoleGuard permission={PERMISSIONS.TENANTS_MANAGE} fallback={<AccesRefuse />}>
+                    <LazyPage><GestionTenantsPage /></LazyPage>
                   </RoleGuard>
                 ),
               },

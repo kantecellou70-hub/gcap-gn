@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, AlertTriangle } from 'lucide-react'
+import { Loader2, AlertTriangle, WifiOff } from 'lucide-react'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { MontantGNF } from '@/shared/components/MontantGNF'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
@@ -11,6 +11,8 @@ import { useTenant } from '@/app/contexts/TenantContext'
 import { formatGNF, cn } from '@/shared/lib/utils'
 import { useLignesBudgetaires, useExercices } from '@/features/budget/hooks/useBudget'
 import { useCreerEngagement } from '../hooks/useEngagements'
+import { useCreateEngagementWithOffline } from '../hooks/useMutationEngagement'
+import { useNetworkStatus } from '@/shared/hooks/useNetworkStatus'
 
 const engagementSchema = z.object({
   objet:              z.string().min(10, "Décrivez l'objet (min 10 caractères)").max(255),
@@ -37,6 +39,8 @@ export function EngagementFormPage() {
   const { exerciceActif } = useTenant()
   const { data: exercices = [] } = useExercices()
   const creer = useCreerEngagement()
+  const offlineMutate = useCreateEngagementWithOffline()
+  const { isOnline } = useNetworkStatus()
   const [showCancel, setShowCancel] = useState(false)
 
   const {
@@ -62,26 +66,44 @@ export function EngagementFormPage() {
   const depasse = montantWatch > 0 && montantWatch > creditDispo
 
   async function onSubmit(data: FormData, statut: 'BROUILLON' | 'EN_ATTENTE_VISA') {
-    await creer.mutateAsync({
-      input: {
-        objet:             data.objet,
-        exerciceId:        data.exerciceId,
-        ligneBudgetaireId: data.ligneBudgetaireId,
-        fournisseur:       data.fournisseur,
-        referenceMarche:   data.referenceMarche,
-        referenceBonCmd:   data.referenceBonCmd,
-        dateEcheance:      data.dateEcheance,
-        observations:      data.observations,
-        montantEngage:     data.montantEngage,
-      },
-      statut,
-    })
+    const input = {
+      objet:             data.objet,
+      exerciceId:        data.exerciceId,
+      ligneBudgetaireId: data.ligneBudgetaireId,
+      fournisseur:       data.fournisseur,
+      referenceMarche:   data.referenceMarche,
+      referenceBonCmd:   data.referenceBonCmd,
+      dateEcheance:      data.dateEcheance,
+      observations:      data.observations,
+      montantEngage:     data.montantEngage,
+    }
+
+    if (isOnline) {
+      await creer.mutateAsync({ input, statut })
+    } else {
+      await offlineMutate.mutate(input, statut)
+    }
     navigate('/engagements')
   }
 
   return (
     <div>
       <PageHeader titre="Nouvel engagement" description="Créer un engagement de dépense" />
+
+      {/* Bandeau offline */}
+      {!isOnline && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          <WifiOff size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Vous êtes <strong>hors ligne</strong>. Votre engagement sera sauvegardé localement
+            et synchronisé automatiquement au retour de la connexion. Le bouton "Soumettre au CF"
+            enregistre en local avec statut <em>EN_ATTENTE_VISA</em>.
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Colonne gauche (2/3) ── */}
@@ -245,7 +267,7 @@ export function EngagementFormPage() {
           className="rounded-lg border border-indigo-300 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
         >
           {isSubmitting ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
-          Enregistrer en brouillon
+          {isOnline ? 'Enregistrer en brouillon' : 'Sauvegarder en local'}
         </button>
         <button
           type="button"
@@ -254,7 +276,7 @@ export function EngagementFormPage() {
           className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
         >
           {(isSubmitting || creer.isPending) ? <Loader2 size={14} className="animate-spin" /> : null}
-          Soumettre au CF
+          {isOnline ? 'Soumettre au CF' : 'Sauvegarder (local)'}
         </button>
       </div>
 

@@ -98,6 +98,8 @@ const ROLE_PERMISSIONS: Record<string, Role[]> = {
   'inventaire.clore':         ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'COMPTABLE_MATIERES'],
   // M9 — Consolidation nationale (SUPER_ADMIN uniquement — cross-tenant)
   'consolidation.nationale':  ['SUPER_ADMIN'],
+  // M10 — Gestion des tenants (SUPER_ADMIN uniquement)
+  'tenants.manage':           ['SUPER_ADMIN'],
 }
 
 export function canDo(action: string, userRoles: Role[]): boolean {

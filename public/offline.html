@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GCAP-GN — Hors ligne</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 1.5rem;
+    }
+    /* Bandeau tricolore guinéen */
+    .flag-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      display: flex;
+    }
+    .flag-bar span { flex: 1; }
+    .flag-bar .rouge  { background: #CE1126; }
+    .flag-bar .jaune  { background: #FCD116; }
+    .flag-bar .vert   { background: #009A44; }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      background: #1e3a5f;
+      border-radius: 16px;
+    }
+    h1 { font-size: 1.25rem; font-weight: 700; color: #1e3a5f; }
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      border-radius: 9999px;
+      padding: 0.25rem 0.75rem;
+    }
+    p {
+      font-size: 0.9rem;
+      color: #475569;
+      text-align: center;
+      max-width: 360px;
+      line-height: 1.6;
+    }
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    button {
+      background: #1e3a5f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #1e4976; }
+    .support {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="flag-bar">
+    <span class="rouge"></span>
+    <span class="jaune"></span>
+    <span class="vert"></span>
+  </div>
+
+  <div class="card">
+    <div class="logo">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="8" fill="#1e3a5f"/>
+        <text x="20" y="27" text-anchor="middle" font-family="monospace" font-size="16" font-weight="bold" fill="white">GN</text>
+      </svg>
+    </div>
+    <h1>GCAP-GN</h1>
+    <span class="badge">Connexion requise</span>
+    <p>
+      L'application n'est pas disponible hors ligne sur ce navigateur.
+      Vérifiez votre connexion internet et réessayez.
+    </p>
+    <button onclick="window.location.reload()">Réessayer</button>
+  </div>
+
+  <p class="support">Support technique : support@gcap-gn.gov.gn</p>
+</body>
+</html>

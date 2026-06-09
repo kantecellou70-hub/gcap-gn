@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Wallet, FileText, ClipboardCheck, Send,
   TrendingUp, Package, BookOpen, BarChart2, Shield,
-  Settings, LogOut, Building2, BarChart, FileDown, ChevronsUpDown,
+  Settings, LogOut, Building2, BarChart, FileDown, ChevronsUpDown, Landmark,
 } from 'lucide-react'
 import { LogoGCAPGN } from '@/shared/components/LogoGCAPGN'
 import { useAuth } from '@/app/contexts/AuthContext'
@@ -66,6 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Dashboard national',   path: '/super-admin/dashboard', icon: Building2 },
       { label: 'Consolidation M9',     path: '/super-admin/m9',        icon: BarChart },
       { label: 'Export LOLF',          path: '/super-admin/lolf',      icon: FileDown },
+      { label: 'Gestion ministères',   path: '/super-admin/tenants',   icon: Landmark },
     ],
   },
 ]

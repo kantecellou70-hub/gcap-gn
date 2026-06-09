@@ -17,6 +17,7 @@ import {
   useSoumettreEngagement,
   useAnnulerEngagement,
 } from '../hooks/useEngagements'
+import { BrouillonsPanel } from '../components/BrouillonsPanel'
 import type { Engagement, StatutEngagement } from '../types'
 import { cn } from '@/shared/lib/utils'
 
@@ -170,6 +171,9 @@ export function EngagementsPage() {
           </RoleGuard>
         }
       />
+
+      {/* Brouillons offline en attente */}
+      <BrouillonsPanel />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
