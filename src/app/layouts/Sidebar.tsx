@@ -13,6 +13,7 @@ interface NavItem {
   label: string
   path: string
   icon: React.ElementType
+  dataTour?: string
 }
 
 interface NavGroup {
@@ -31,10 +32,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     titre: 'BUDGET & DÉPENSES',
     items: [
-      { label: 'Budget',          path: '/budget',          icon: Wallet },
-      { label: 'Engagements',     path: '/engagements',     icon: FileText },
+      { label: 'Budget',          path: '/budget',          icon: Wallet,         dataTour: 'nav-budget' },
+      { label: 'Engagements',     path: '/engagements',     icon: FileText,       dataTour: 'nav-engagements' },
       { label: 'Liquidations',    path: '/liquidations',    icon: ClipboardCheck },
-      { label: 'Ordonnancement',  path: '/ordonnancement',  icon: Send },
+      { label: 'Ordonnancement',  path: '/ordonnancement',  icon: Send,           dataTour: 'nav-ordonnancement' },
     ],
   },
   {
@@ -48,8 +49,8 @@ const NAV_GROUPS: NavGroup[] = [
     titre: 'RAPPORTS',
     items: [
       { label: 'Comptes admin', path: '/comptes-admin', icon: BookOpen },
-      { label: 'Reporting',     path: '/reporting',     icon: BarChart2 },
-      { label: 'Audit',         path: '/audit',         icon: Shield },
+      { label: 'Reporting',     path: '/reporting',     icon: BarChart2,  dataTour: 'nav-reporting' },
+      { label: 'Audit',         path: '/audit',         icon: Shield,     dataTour: 'nav-audit' },
     ],
   },
   {
@@ -76,6 +77,7 @@ function NavItemLink({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.path}
+      data-tour={item.dataTour}
       className={({ isActive }) =>
         cn(
           'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
@@ -85,7 +87,7 @@ function NavItemLink({ item }: { item: NavItem }) {
         )
       }
     >
-      <Icon size={16} />
+      <Icon size={16} aria-hidden="true" />
       {item.label}
     </NavLink>
   )
@@ -94,7 +96,10 @@ function NavItemLink({ item }: { item: NavItem }) {
 function UserInitials({ nom, prenom }: { nom: string; prenom: string }) {
   const initials = `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase()
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white shrink-0">
+    <span
+      aria-hidden="true"
+      className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white shrink-0"
+    >
       {initials}
     </span>
   )
@@ -130,7 +135,10 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-56 shrink-0 bg-slate-900 flex flex-col h-screen">
+    <aside
+      className="w-56 shrink-0 bg-slate-900 flex flex-col h-screen"
+      aria-label="Navigation principale"
+    >
       {/* En-tête */}
       <div className="px-4 py-4 border-b border-slate-800">
         <LogoGCAPGN size="sm" variant="light" />
@@ -138,7 +146,11 @@ export function Sidebar() {
         {/* Dropdown tenant SUPER_ADMIN */}
         {isSuperAdmin ? (
           <div className="mt-2 relative">
+            <label htmlFor="tenant-select" className="sr-only">
+              Sélectionner un ministère
+            </label>
             <select
+              id="tenant-select"
               aria-label="Sélectionner un tenant"
               value={tenantActif?.id ?? ''}
               onChange={handleTenantChange}
@@ -154,7 +166,11 @@ export function Sidebar() {
                 <option key={t.id} value={t.id}>{t.nom}</option>
               ))}
             </select>
-            <ChevronsUpDown size={11} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
+            <ChevronsUpDown
+              size={11}
+              aria-hidden="true"
+              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400"
+            />
           </div>
         ) : (
           tenantActif && (
@@ -166,7 +182,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6" aria-label="Menu">
         {NAV_GROUPS.map((group) => {
           if (
             group.rolesRequis &&
@@ -175,15 +191,17 @@ export function Sidebar() {
             return null
           }
           return (
-            <div key={group.titre}>
-              <p className="mb-1 px-3 text-[10px] font-semibold tracking-wider text-slate-600 uppercase">
+            <div key={group.titre} role="group" aria-label={group.titre}>
+              <p className="mb-1 px-3 text-[10px] font-semibold tracking-wider text-slate-600 uppercase" aria-hidden="true">
                 {group.titre}
               </p>
-              <div className="space-y-0.5">
+              <ul className="space-y-0.5 list-none" role="list">
                 {group.items.map((item) => (
-                  <NavItemLink key={item.path} item={item} />
+                  <li key={item.path}>
+                    <NavItemLink item={item} />
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )
         })}
@@ -206,9 +224,10 @@ export function Sidebar() {
         </div>
         <button
           onClick={signOut}
+          aria-label="Se déconnecter de GCAP-GN"
           className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
         >
-          <LogOut size={16} />
+          <LogOut size={16} aria-hidden="true" />
           Déconnexion
         </button>
       </div>

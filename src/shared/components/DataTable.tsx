@@ -18,11 +18,13 @@ interface DataTableProps<T> {
   onPageChange?: (page: number) => void
   onRowClick?: (row: T) => void
   getRowKey?: (row: T) => string
+  ariaLabel?: string
+  getRowAriaLabel?: (row: T) => string
 }
 
 function SkeletonRow({ cols }: { cols: number }) {
   return (
-    <tr>
+    <tr aria-hidden="true">
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 bg-slate-200 rounded animate-pulse" />
@@ -42,18 +44,32 @@ export function DataTable<T>({
   onPageChange,
   onRowClick,
   getRowKey,
+  ariaLabel,
+  getRowAriaLabel,
 }: DataTableProps<T>) {
   const totalPages = totalItems ? Math.ceil(totalItems / pageSize) : 1
+
+  function handleRowKeyDown(e: React.KeyboardEvent, row: T) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onRowClick?.(row)
+    }
+  }
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table
+          aria-label={ariaLabel}
+          aria-busy={isLoading ? 'true' : 'false'}
+          className="w-full text-sm"
+        >
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50">
               {colonnes.map((col) => (
                 <th
                   key={col.key}
+                  scope="col"
                   className={cn(
                     'px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider',
                     col.className
@@ -72,8 +88,8 @@ export function DataTable<T>({
             ) : donnees.length === 0 ? (
               <tr>
                 <td colSpan={colonnes.length} className="px-4 py-16 text-center">
-                  <div className="flex flex-col items-center gap-2 text-slate-400">
-                    <Inbox size={36} strokeWidth={1.5} />
+                  <div className="flex flex-col items-center gap-2 text-slate-400" role="status">
+                    <Inbox size={36} strokeWidth={1.5} aria-hidden="true" />
                     <p className="text-sm">Aucun résultat</p>
                   </div>
                 </td>
@@ -83,9 +99,12 @@ export function DataTable<T>({
                 <tr
                   key={getRowKey ? getRowKey(row) : idx}
                   onClick={() => onRowClick?.(row)}
+                  onKeyDown={onRowClick ? (e) => handleRowKeyDown(e, row) : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  aria-label={getRowAriaLabel ? getRowAriaLabel(row) : undefined}
                   className={cn(
                     'transition-colors',
-                    onRowClick && 'cursor-pointer hover:bg-slate-50'
+                    onRowClick && 'cursor-pointer hover:bg-slate-50 focus:outline-none focus:bg-indigo-50 focus:ring-1 focus:ring-inset focus:ring-indigo-400'
                   )}
                 >
                   {colonnes.map((col) => (
@@ -103,22 +122,25 @@ export function DataTable<T>({
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
         <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500" aria-live="polite" aria-atomic="true">
             Page {page} sur {totalPages}
-            {totalItems && ` · ${totalItems} résultats`}
+            {totalItems ? ` · ${totalItems} résultats` : ''}
           </p>
-          <div className="flex items-center gap-1">
+          <nav aria-label="Pagination" className="flex items-center gap-1">
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page === 1}
+              aria-label="Page précédente"
               className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={16} aria-hidden="true" />
             </button>
             {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
               <button
                 key={p}
                 onClick={() => onPageChange(p)}
+                aria-label={`Page ${p}`}
+                aria-current={p === page ? 'page' : undefined}
                 className={cn(
                   'min-w-[28px] h-7 rounded text-xs font-medium',
                   p === page
@@ -132,11 +154,12 @@ export function DataTable<T>({
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page === totalPages}
+              aria-label="Page suivante"
               className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
-          </div>
+          </nav>
         </div>
       )}
     </div>

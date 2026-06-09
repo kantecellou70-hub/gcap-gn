@@ -162,10 +162,11 @@ export function EngagementsPage() {
           <RoleGuard permission={PERMISSIONS.ENGAGEMENT_CREATE}>
             <button
               type="button"
+              data-tour="btn-nouvel-engagement"
               onClick={() => navigate('/engagements/nouveau')}
               className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
-              <Plus size={16} />
+              <Plus size={16} aria-hidden="true" />
               Nouvel engagement
             </button>
           </RoleGuard>
@@ -188,6 +189,7 @@ export function EngagementsPage() {
         <div className="flex flex-wrap gap-3">
           <select
             aria-label="Filtrer par statut"
+            data-tour="tab-en-attente"
             value={statut}
             onChange={(e) => setStatut(e.target.value as StatutEngagement | '')}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"

@@ -2,6 +2,12 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 const APP_URL        = Deno.env.get('APP_URL') ?? 'https://gcap-gn.vercel.app'
 const FROM_EMAIL     = 'GCAP-GN <invitations@gcap-gn.gouv.gn>'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 interface InvitationEmailPayload {
   to_email:    string
   prenom:      string
@@ -101,26 +107,31 @@ function buildEmailHtml(p: InvitationEmailPayload): string {
 }
 
 Deno.serve(async (req: Request) => {
+  // Preflight CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: CORS_HEADERS })
+  }
+
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS })
   }
 
   let payload: InvitationEmailPayload
   try {
     payload = await req.json() as InvitationEmailPayload
   } catch {
-    return new Response('Invalid JSON', { status: 400 })
+    return new Response('Invalid JSON', { status: 400, headers: CORS_HEADERS })
   }
 
   if (!payload.to_email || !payload.invite_link) {
-    return new Response('Missing required fields', { status: 400 })
+    return new Response('Missing required fields', { status: 400, headers: CORS_HEADERS })
   }
 
   if (!RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set — invitation email skipped')
     return new Response(JSON.stringify({ sent: false, reason: 'no_api_key' }), {
       status:  200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   }
 
@@ -142,14 +153,14 @@ Deno.serve(async (req: Request) => {
   })
 
   if (!res.ok) {
-    const err = await res.text()
-    console.error('Resend error:', err)
-    return new Response('Email send failed', { status: 500 })
+    const resendErr = await res.text()
+    console.error('Resend error:', resendErr)
+    return new Response('Email send failed', { status: 500, headers: CORS_HEADERS })
   }
 
   return new Response(JSON.stringify({ sent: true, to: payload.to_email }), {
     status:  200,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   })
 })
 

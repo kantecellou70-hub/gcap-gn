@@ -165,10 +165,22 @@ export function LoginPage() {
         </form>
 
         {/* Pied de carte */}
-        <div className="px-8 py-4 border-t border-slate-100 text-center">
+        <div className="px-8 py-4 border-t border-slate-100 text-center space-y-2">
           <p className="text-xs text-slate-400">
             © 2026 LYNXA SARL · Conakry, Guinée
           </p>
+          <div>
+            <Link
+              to="/login?tenant=SANDBOX"
+              className="text-xs text-violet-500 hover:text-violet-700 hover:underline transition-colors"
+            >
+              Accéder à l'environnement de formation →
+            </Link>
+            <p className="mt-1 text-xs text-slate-400">
+              Comptes : saff@formation.gcap-gn.gn · cf@formation.gcap-gn.gn ·
+              ordonnateur@formation.gcap-gn.gn · daff@formation.gcap-gn.gn
+            </p>
+          </div>
         </div>
       </div>
     </div>

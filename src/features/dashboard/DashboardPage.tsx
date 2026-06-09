@@ -7,6 +7,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { CarteKPI } from '@/shared/components/CarteKPI'
 import { MontantGNF } from '@/shared/components/MontantGNF'
 import { StatutBadge } from '@/shared/components/StatutBadge'
+import { OnboardingTrigger } from '@/features/onboarding/components/OnboardingTrigger'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { useTenant } from '@/app/contexts/TenantContext'
 import { useEngagements, useEngagementsEnAttenteVisa } from '@/features/engagements/hooks/useEngagements'
@@ -141,6 +142,7 @@ export function DashboardPage() {
 
   return (
     <div>
+      <OnboardingTrigger />
       <PageHeader
         titre={greeting}
         description={tenant ? `${tenant.nom} · Exercice ${exerciceActif?.annee ?? '—'}` : ''}
@@ -157,7 +159,7 @@ export function DashboardPage() {
       {!isCF ? (
         <>
           {/* ─── Ligne 1 : KPIs Budget + Engagement ─────────────────────────── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4" data-tour="kpi-credits-disponibles">
             <CarteKPI
               titre="Budget total"
               valeur={totalBudget}
@@ -226,7 +228,9 @@ export function DashboardPage() {
 
           {/* ─── Grille : Funnel + Derniers engagements ───────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CycleDepenseFunnel etapes={etapesFunnel} isLoading={loading} />
+            <div data-tour="kpi-taux-execution">
+              <CycleDepenseFunnel etapes={etapesFunnel} isLoading={loading} />
+            </div>
 
             {/* Derniers engagements */}
             <div className="bg-white border border-slate-200 rounded-lg">

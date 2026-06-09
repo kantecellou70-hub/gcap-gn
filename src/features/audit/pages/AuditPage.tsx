@@ -171,11 +171,13 @@ export function AuditPage() {
             )}
             <button
               type="button"
+              data-tour="btn-export-csv"
               onClick={exportCsv}
               disabled={isExporting || total === 0}
+              aria-label="Exporter le journal d'audit en CSV"
               className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download size={13} />
+              <Download size={13} aria-hidden="true" />
               Exporter CSV
             </button>
             <button

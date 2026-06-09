@@ -7,6 +7,7 @@ import { useInactivityTimeout } from '@/shared/hooks/useInactivityTimeout'
 import { SessionWarningModal } from '@/features/auth/components/SessionWarningModal'
 import { ImpersonationBanner } from '@/shared/components/ImpersonationBanner'
 import { NetworkStatusBar } from '@/shared/components/NetworkStatusBar'
+import { SandboxBanner } from '@/features/onboarding/components/SandboxBanner'
 import { PwaUpdatePrompt } from '@/shared/components/PwaUpdatePrompt'
 import { useOfflineCache } from '@/shared/hooks/useOfflineCache'
 import { supabase } from '@/shared/lib/supabase'
@@ -43,6 +44,7 @@ export function AppShell() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-0">
         <PwaUpdatePrompt />
+        <SandboxBanner />
         <TopBar />
         <ImpersonationBanner />
         <NetworkStatusBar />
