@@ -33,7 +33,11 @@ Développé par LYNXA SARL (LynxaTech) — Conakry, Guinée
 | **MFA** | ✅ Terminé | TOTP obligatoire (ORDONNATEUR, CF, SUPER_ADMIN), timeout inactivité 30 min, vue conformité |
 | **Performance** | ✅ Terminé | Pagination serveur 25 lignes, cache TanStack Query, lazy loading, Web Vitals, indexes SQL |
 | **Sauvegarde & SLA** | ✅ Terminé | Politique 3 niveaux, PCA 4 scénarios, SLA ministères, souveraineté données, mode maintenance |
-| **PWA** | 🔜 À venir | Mode offline |
+| **Accessibilité WCAG 2.1 AA** | ✅ Terminé | ARIA, contraste, focus trap, navigation clavier, messages Zod français, responsive 1024×768 |
+| **Tour guidé par rôle** | ✅ Terminé | driver.js lazy, 5 tours adaptés (SAFF/CF/ORDONNATEUR/DAFF/AUDITEUR), relançable depuis le menu |
+| **Manuel PDF par rôle** | ✅ Terminé | jsPDF lazy — couverture, rôle LOLF, actions pas-à-pas, bandeau tricolore guinéen |
+| **Sandbox de formation** | ✅ Terminé | Tenant SANDBOX isolé, bannière violette, seed données fictives `[FORMATION]`, lien login |
+| **PWA** | 🔜 À venir | Mode offline complet |
 
 ---
 
@@ -62,6 +66,8 @@ L'application est **multi-tenant** : chaque ministère ou EPA dispose d'une inst
 | Validation | Zod + React Hook Form | v4 / v7 |
 | Routing | React Router | v7 |
 | Notifications | react-hot-toast | v2 |
+| Tour guidé | driver.js (lazy) | v1 |
+| Génération PDF | jsPDF (lazy) | v4 |
 | Tests | Vitest + Testing Library | v1 |
 | Runtime | Node.js | 18.x |
 
@@ -164,6 +170,16 @@ npm run test         # Tests Vitest (152 tests, mode run)
 npm run test:ui      # Interface Vitest UI
 ```
 
+**Sandbox de formation** (prérequis : `SUPABASE_SERVICE_ROLE_KEY` dans `.env.local`) :
+
+```bash
+# 1. Appliquer la migration si ce n'est pas encore fait
+#    → supabase/migrations/023_sandbox_tenant.sql
+
+# 2. Peupler avec les données fictives
+npx tsx scripts/seed-sandbox.ts
+```
+
 **Scripts de sauvegarde** (prérequis : `SUPABASE_PROJECT_REF` + `SUPABASE_DB_PASSWORD`) :
 
 ```bash
@@ -198,12 +214,16 @@ src/
 │   │   ├── api/        # healthCheck.ts (Supabase + Auth + DB + Storage + uptime)
 │   │   ├── components/ # MaintenancePage.tsx (100 % statique)
 │   │   └── pages/      # HealthPage.tsx
+│   ├── onboarding/     # Tour guidé, manuel PDF, bannière sandbox
+│   │   ├── components/ # OnboardingTrigger, SandboxBanner
+│   │   ├── hooks/      # useOnboarding (localStorage)
+│   │   └── lib/        # tourConfig.ts, manuelPdf.ts
 │   └── dashboard/      # Tableau de bord multi-rôle
 └── shared/
     ├── components/     # CarteKPI, DataTable, ServerPaginationControls…
     ├── constants/      # permissions.ts
-    ├── hooks/          # useTenant, useCurrentUser, useServerPagination
-    ├── lib/            # supabase.ts, currency.ts, queryClient.ts, supabaseSelects.ts, webVitals.ts
+    ├── hooks/          # useTenant, useCurrentUser, useServerPagination, useFocusTrap
+    ├── lib/            # supabase.ts, currency.ts, zodMessages.ts, contrastAudit.ts, queryClient.ts, webVitals.ts
     └── types/          # Types TypeScript globaux
 
 tests/
@@ -212,6 +232,9 @@ tests/
 └── integration/                   # Cycle dépense, budget, notifications (152 tests total)
 
 docs/
+├── ACCESSIBILITE.md    # Conformité WCAG 2.1 AA — ratios contraste, composants audités, navigation clavier
+├── ONBOARDING.md       # Guide formateur, sandbox, tour guidé, manuel PDF
+├── ONBOARDING_MINISTERES.md  # Procédure activation d'un nouveau ministère
 ├── BACKUP.md           # Politique sauvegarde — Free / Pro / Enterprise
 ├── PCA.md              # Plan de continuité — 4 scénarios (Supabase, Vercel, corruption, compromission)
 ├── INCIDENTS.md        # Registre des incidents
@@ -220,6 +243,7 @@ docs/
 └── PERFORMANCE.md      # Cibles perf terrain (3G, Core i3) + stratégie cache
 
 scripts/
+├── seed-sandbox.ts               # Peuplement tenant SANDBOX avec données [FORMATION]
 ├── backup-manual.sh              # pg_dump + SHA-256, nettoyage 30 j
 ├── export-tenant-data.sh         # Export JSON par tenant + checksums OHADA
 └── check-migrations.sh
@@ -244,7 +268,11 @@ supabase/
     ├── 016_mfa_audit.sql
     ├── 017_audit_signature_archivage.sql
     ├── 018_performance_indexes.sql
-    └── 019_backup_verification.sql  # vue v_backup_health (postgres only)
+    ├── 019_backup_verification.sql
+    ├── 020_m9_consolidation.sql
+    ├── 021_seed_ministeres_guinee.sql
+    ├── 022_tenants_rls_super_admin.sql
+    └── 023_sandbox_tenant.sql       # Tenant SANDBOX formation (idempotent)
 
 public/
 ├── favicon.svg         # Icône principale (carré arrondi)
@@ -343,6 +371,52 @@ La matrice de permissions est vérifiée par **63 tests Vitest** (`tests/rbac-co
 - **Sauvegarde** — pg_dump quotidien (Pro), PITR < 1 min, export tenant JSON + SHA-256 (OHADA)
 - **Mode maintenance** — page 100 % statique activable sans Supabase (`VITE_MAINTENANCE_MODE=true`)
 - **Souveraineté** — hébergement AWS eu-west-3 Paris, conforme L/2016/037/AN (Guinée) et OHADA
+
+---
+
+## Accessibilité (WCAG 2.1 AA)
+
+Conforme aux critères AA pour les postes terrain guinéens (1024×768, souris + clavier, Chrome/Firefox/Edge).
+
+| Domaine | Implémentation |
+| ------- | -------------- |
+| ARIA | `aria-label`, `aria-hidden`, `role="group"`, `scope="col"`, `aria-busy`, `aria-expanded` sur tous les composants partagés |
+| Contraste | Ratios vérifiés — texte principal 16:1, badges statut 4.5:1+ — voir `src/shared/lib/contrastAudit.ts` |
+| Navigation clavier | DataTable navigable (Tab + Enter/Espace), pagination ARIA, `useFocusTrap` disponible pour modals |
+| Messages d'erreur | Zod avec messages français via `src/shared/lib/zodMessages.ts` |
+| Responsive | Grilles 2 colonnes sous 768px, sidebar scrollable, modals `max-w-[90vw]` |
+
+Documentation complète : [docs/ACCESSIBILITE.md](docs/ACCESSIBILITE.md)
+
+---
+
+## Onboarding & Formation
+
+### Tour guidé
+
+Au premier login, un tour interactif se lance automatiquement après 1 seconde (driver.js, chargé en lazy). 5 parcours selon le rôle : SAFF, CF, Ordonnateur, DAFF, Auditeur. Relançable via le menu utilisateur → "Reprendre la visite guidée".
+
+### Manuel PDF
+
+Menu utilisateur → "Télécharger mon manuel" génère un PDF A4 (jsPDF lazy) avec :
+
+- Couverture personnalisée + bandeau tricolore guinéen
+- Description du rôle et séparation des fonctions (LOLF)
+- Actions pas-à-pas adaptées au profil
+- Page support LYNXA
+
+### Sandbox de formation
+
+Un tenant `SANDBOX` isolé permet la formation sans impacter la production.
+
+```text
+URL login → lien "Accéder à l'environnement de formation"
+Comptes : saff@ · cf@ · ordonnateur@ · daff@ · auditeur@formation.gcap-gn.gn
+```
+
+Une bannière violette sticky identifie clairement l'environnement de formation. Les données sont préfixées `[FORMATION]` et n'apparaissent jamais dans les vrais tenants (RLS).
+
+Documentation complète : [docs/ONBOARDING.md](docs/ONBOARDING.md)
 
 ---
 
