@@ -2,8 +2,9 @@
 // Peut s'afficher même si Supabase est totalement indisponible.
 // Contrôlé par VITE_MAINTENANCE_MODE=true et VITE_MAINTENANCE_END_TIME.
 
-const APP_NAME    = import.meta.env.VITE_APP_NAME    ?? 'GCAP-GN'
-const END_TIME    = import.meta.env.VITE_MAINTENANCE_END_TIME ?? ''
+import { LogoGCAPGN } from '@/shared/components/LogoGCAPGN'
+
+const END_TIME      = import.meta.env.VITE_MAINTENANCE_END_TIME ?? ''
 const SUPPORT_EMAIL = 'support@lynxa.tech'
 
 function parseEndTime(raw: string): string | null {
@@ -16,17 +17,6 @@ function parseEndTime(raw: string): string | null {
   }).format(d)
 }
 
-// Bandeau tricolore guinéen (rouge - jaune - vert)
-function GuineanFlag() {
-  return (
-    <div className="flex h-1.5 w-24 overflow-hidden rounded-full" aria-hidden="true">
-      <div className="flex-1 bg-red-600" />
-      <div className="flex-1 bg-yellow-400" />
-      <div className="flex-1 bg-green-600" />
-    </div>
-  )
-}
-
 export function MaintenancePage() {
   const endTime = parseEndTime(END_TIME)
 
@@ -36,14 +26,14 @@ export function MaintenancePage() {
 
         {/* Logo / identité */}
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg">
-            <span className="text-2xl font-bold text-white select-none">G</span>
+          <LogoGCAPGN size="lg" variant="dark" />
+          {/* Bandeau tricolore guinéen */}
+          <div className="flex w-full max-w-[200px] h-[3px] rounded-full overflow-hidden" aria-hidden="true">
+            <span className="flex-1 bg-[#CE1126]" />
+            <span className="flex-1 bg-[#FCD116]" />
+            <span className="flex-1 bg-[#009460]" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">{APP_NAME}</h1>
-            <p className="text-sm text-slate-500">Gestion Comptable Administrative Publique</p>
-          </div>
-          <GuineanFlag />
+          <p className="text-sm text-slate-500">Gestion Comptable Administrative Publique</p>
         </div>
 
         {/* Message principal */}

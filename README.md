@@ -24,15 +24,16 @@ Développé par LYNXA SARL (LynxaTech) — Conakry, Guinée
 | **M7 — Comptes admin** | ✅ Terminé | Synthèse exercice, RAL, RAP, export PDF |
 | **M8 — Reporting** | ✅ Terminé | Recharts, exports Excel/PDF |
 | **M10 — Administration** | ✅ Terminé | Utilisateurs, fournisseurs, exercices, nomenclatures |
-| **Audit** | ✅ Terminé | Journal immuable, lecture seule |
+| **Audit** | ✅ Terminé | Journal immuable, signatures HMAC-SHA256, export PDF |
 | **Dashboard** | ✅ Terminé | Vue par rôle, alertes, KPIs |
-| **Tests RBAC** | ✅ Terminé | 63 tests Vitest — conformité institutionnelle guinéenne, séparation des fonctions |
+| **Tests RBAC** | ✅ Terminé | 152 tests Vitest — conformité institutionnelle guinéenne, séparation des fonctions |
 | **Identité visuelle** | ✅ Terminé | Logo `mark-square.svg` intégré (sidebar, login, reset) |
 | **Pièces jointes** | ✅ Terminé | Upload Supabase Storage sur engagements (PDF, images, Word, Excel) |
 | **Notifications** | ✅ Terminé | Notifications temps réel (cloche), triggers SQL sur engagement/liquidation/mandat/exercice |
 | **MFA** | ✅ Terminé | TOTP obligatoire (ORDONNATEUR, CF, SUPER_ADMIN), timeout inactivité 30 min, vue conformité |
+| **Performance** | ✅ Terminé | Pagination serveur 25 lignes, cache TanStack Query, lazy loading, Web Vitals, indexes SQL |
+| **Sauvegarde & SLA** | ✅ Terminé | Politique 3 niveaux, PCA 4 scénarios, SLA ministères, souveraineté données, mode maintenance |
 | **PWA** | 🔜 À venir | Mode offline |
-| **Déploiement** | 🔜 À venir | Vercel + variables production |
 
 ---
 
@@ -113,9 +114,27 @@ VITE_DEFAULT_TENANT=mefb
 
 # SICOM — laisser vide pour le mode simulation
 VITE_SICOM_URL=
+
+# Mode maintenance — affiche une page statique sans Supabase
+VITE_MAINTENANCE_MODE=false
+VITE_MAINTENANCE_END_TIME=          # ISO 8601, ex: 2026-06-09T03:00:00+00:00
+
+# Signature audit (obligatoire en production)
+VITE_AUDIT_HMAC_SECRET=             # openssl rand -hex 32
 ```
 
 > ⚠️ Ne jamais commiter `.env.local` — exclu par `.gitignore`.
+
+### Mode maintenance
+
+Pour activer la page de maintenance (panne Supabase, migration, déploiement) :
+
+```env
+VITE_MAINTENANCE_MODE=true
+VITE_MAINTENANCE_END_TIME=2026-06-09T03:00:00+00:00
+```
+
+La `MaintenancePage` est **100 % statique** — aucun appel Supabase, fonctionne même si la base est indisponible. En production, modifier via **Vercel Dashboard → Settings → Environment Variables** puis redéployer.
 
 ---
 
@@ -140,9 +159,16 @@ npm run dev          # Serveur de développement (port 5173)
 npm run build        # Build de production
 npm run preview      # Prévisualiser le build
 npm run typecheck    # Vérification TypeScript (zéro erreur tolérée)
-npm run lint         # ESLint
-npm run test         # Tests Vitest (mode run)
+npm run lint         # ESLint (zéro warning toléré)
+npm run test         # Tests Vitest (152 tests, mode run)
 npm run test:ui      # Interface Vitest UI
+```
+
+**Scripts de sauvegarde** (prérequis : `SUPABASE_PROJECT_REF` + `SUPABASE_DB_PASSWORD`) :
+
+```bash
+./scripts/backup-manual.sh                    # pg_dump complet + SHA-256
+./scripts/export-tenant-data.sh <TENANT_ID>   # Export JSON par tenant + checksums
 ```
 
 ---
@@ -154,10 +180,10 @@ src/
 ├── app/
 │   ├── contexts/       # AuthContext, TenantContext
 │   ├── layouts/        # AppShell, Sidebar, TopBar
-│   ├── router/         # Routes, ProtectedRoute, RoleGuard
+│   ├── router/         # Routes, ProtectedRoute, RoleGuard, LazyPage
 │   └── providers.tsx
 ├── features/
-│   ├── auth/           # Login, ResetPassword, AccesRefuse
+│   ├── auth/           # Login, ResetPassword, AccesRefuse, MFA
 │   ├── budget/         # M1 — api/, hooks/, components/, pages/
 │   ├── engagements/    # M2
 │   ├── liquidations/   # M3
@@ -167,16 +193,36 @@ src/
 │   ├── comptes-admin/  # M7
 │   ├── reporting/      # M8
 │   ├── administration/ # M10 — utilisateurs, fournisseurs, exercices, nomenclatures
-│   ├── audit/          # Journal immuable
+│   ├── audit/          # Journal immuable, export PDF
+│   ├── health/
+│   │   ├── api/        # healthCheck.ts (Supabase + Auth + DB + Storage + uptime)
+│   │   ├── components/ # MaintenancePage.tsx (100 % statique)
+│   │   └── pages/      # HealthPage.tsx
 │   └── dashboard/      # Tableau de bord multi-rôle
 └── shared/
-    ├── components/     # CarteKPI, DataTable, StatutBadge, MontantGNF, LogoGCAPGN…
+    ├── components/     # CarteKPI, DataTable, ServerPaginationControls…
     ├── constants/      # permissions.ts
-    ├── lib/            # supabase.ts, utils.ts (canDo + ROLE_PERMISSIONS), currency.ts
+    ├── hooks/          # useTenant, useCurrentUser, useServerPagination
+    ├── lib/            # supabase.ts, currency.ts, queryClient.ts, supabaseSelects.ts, webVitals.ts
     └── types/          # Types TypeScript globaux
 
 tests/
-└── rbac-conformite.test.ts   # 63 tests — conformité RBAC institutionnelle guinéenne
+├── rbac-conformite.test.ts        # 63 tests — conformité RBAC institutionnelle guinéenne
+├── audit-signature.test.ts        # Signatures HMAC-SHA256
+└── integration/                   # Cycle dépense, budget, notifications (152 tests total)
+
+docs/
+├── BACKUP.md           # Politique sauvegarde — Free / Pro / Enterprise
+├── PCA.md              # Plan de continuité — 4 scénarios (Supabase, Vercel, corruption, compromission)
+├── INCIDENTS.md        # Registre des incidents
+├── SLA.md              # Convention de niveau de service — ministères
+├── SOUVERAINETE.md     # Hébergement actuel (AWS eu-west-3) + roadmap migration africaine
+└── PERFORMANCE.md      # Cibles perf terrain (3G, Core i3) + stratégie cache
+
+scripts/
+├── backup-manual.sh              # pg_dump + SHA-256, nettoyage 30 j
+├── export-tenant-data.sh         # Export JSON par tenant + checksums OHADA
+└── check-migrations.sh
 
 supabase/
 └── migrations/
@@ -195,7 +241,10 @@ supabase/
     ├── 013_notifications.sql
     ├── 014_notifications_triggers.sql
     ├── 015_notifications_triggers_manquants.sql
-    └── 016_mfa_audit.sql
+    ├── 016_mfa_audit.sql
+    ├── 017_audit_signature_archivage.sql
+    ├── 018_performance_indexes.sql
+    └── 019_backup_verification.sql  # vue v_backup_health (postgres only)
 
 public/
 ├── favicon.svg         # Icône principale (carré arrondi)
@@ -238,6 +287,13 @@ src/assets/
 | `fn_get_tenant_id()` | Retourne le `tenant_id` de l'utilisateur courant (SECURITY DEFINER, sans récursion RLS) |
 | `fn_has_role(roles TEXT[])` | Vérifie qu'un rôle actif appartient au tenant courant — utilisé dans les policies INSERT/UPDATE |
 
+### Vue de monitoring
+
+| Vue | Accès | Description |
+| --- | ----- | ----------- |
+| `v_backup_health` | `postgres` uniquement | Santé des données : engagements orphelins, lignes en dépassement, volume audit |
+| `v_mfa_compliance` | `super_admin` | Conformité MFA par tenant |
+
 ### Storage Supabase
 
 | Bucket | Accès | Contenu |
@@ -279,11 +335,31 @@ La matrice de permissions est vérifiée par **63 tests Vitest** (`tests/rbac-co
 - **Multi-tenant strict** — filtre `tenant_id` obligatoire sur chaque requête frontend
 - **RBAC** — `canDo()` côté client + policies SQL côté serveur, 63 tests de conformité
 - **Séparation des fonctions** — ORDONNATEUR ≠ comptable, CF ne crée pas, AUDITEUR lecture seule (LOLF)
-- **Audit log** immuable — chaque action sensible tracée (uid, timestamp, payload)
+- **Audit log** immuable — chaque action tracée (uid, timestamp, payload), signé HMAC-SHA256
 - **Montants INTEGER** — jamais de float/decimal pour éviter les erreurs d'arrondi en GNF
 - **Pièces jointes** — bucket Supabase Storage public (URLs directes), upload/delete RLS-isolés par tenant, 10 Mo max, types MIME restreints
 - **MFA** — TOTP obligatoire pour ORDONNATEUR, CF et SUPER_ADMIN · timeout inactivité 30 min · vue conformité `v_mfa_compliance`
 - **Notifications temps réel** — triggers SQL sur les événements métier clés, stockés en base et diffusés via Supabase Realtime
+- **Sauvegarde** — pg_dump quotidien (Pro), PITR < 1 min, export tenant JSON + SHA-256 (OHADA)
+- **Mode maintenance** — page 100 % statique activable sans Supabase (`VITE_MAINTENANCE_MODE=true`)
+- **Souveraineté** — hébergement AWS eu-west-3 Paris, conforme L/2016/037/AN (Guinée) et OHADA
+
+---
+
+## Performance (terrain guinéen)
+
+Cibles pour connexions 3G / machines Core i3 / écrans 1024×768 :
+
+| Indicateur | Cible | Implémentation |
+| ---------- | ----- | -------------- |
+| Bundle initial | < 300 KB gzip | Lazy loading recharts, jsPDF, xlsx |
+| Chargement initial | < 5 s sur 3G | Code splitting + CDN Vercel Edge |
+| Pagination | 25 lignes/page | `useServerPagination` + `ServerPaginationControls` |
+| Cache données stables | ∞ | `STALE_TIMES.STABLE` (nomenclatures, exercices clôturés) |
+| Cache données dynamiques | 1 min | `STALE_TIMES.DYNAMIC` (engagements, mandats) |
+| Web Vitals (prod) | LCP < 2,5 s · CLS < 0,1 | `initWebVitals()` via `PerformanceObserver` |
+
+Voir `docs/PERFORMANCE.md` pour le détail complet.
 
 ---
 
@@ -309,6 +385,18 @@ formatGNF(1500000) // → "1 500 000 GNF"
 | `public/favicon.svg` | Onglet navigateur |
 
 Couleurs du drapeau guinéen : Rouge `#CE1126` · Jaune `#FCD116` · Vert `#009A44`
+
+---
+
+## Sauvegarde & continuité
+
+| Document | Contenu |
+| -------- | ------- |
+| `docs/BACKUP.md` | Politique 3 niveaux (Gratuit / Pro / Enterprise), RPO/RTO, types de données, rétention OHADA |
+| `docs/PCA.md` | Plan de continuité — scénarios Supabase ↓, bug Vercel, corruption, compromission compte |
+| `docs/INCIDENTS.md` | Registre des incidents (initialement vide) |
+| `docs/SLA.md` | Convention niveau de service — disponibilité, délais support P1–P4, pénalités |
+| `docs/SOUVERAINETE.md` | Hébergement AWS eu-west-3, cadre légal guinéen, roadmap migration africaine 2027 |
 
 ---
 
