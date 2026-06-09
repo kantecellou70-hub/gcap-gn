@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { LazyPage } from './LazyPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { MfaGuard } from './MfaGuard'
+import { RoleGuard } from './RoleGuard'
+import { PERMISSIONS } from '@/shared/constants/permissions'
 import { AppShell } from '@/app/layouts/AppShell'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
@@ -40,6 +42,11 @@ const BienDetailPage   = lazy(() => import('./BienDetailPage').then((m) => ({ de
 const CompteAdminPage  = lazy(() => import('./CompteAdminPage').then((m) => ({ default: m.CompteAdminPage })))
 const ReportingPage    = lazy(() => import('./ReportingPage').then((m) => ({ default: m.ReportingPage })))
 const AuditPage        = lazy(() => import('./AuditPage').then((m) => ({ default: m.AuditPage })))
+
+// Module M9 — Consolidation nationale (SUPER_ADMIN uniquement, recharts + jsPDF + xlsx)
+const DashboardMefbPage   = lazy(() => import('./DashboardMefbPage').then((m) => ({ default: m.DashboardMefbPage })))
+const M9ConsolidationPage = lazy(() => import('./M9ConsolidationPage').then((m) => ({ default: m.M9Page })))
+const LolfExportPage      = lazy(() => import('./LolfExportPage').then((m) => ({ default: m.LolfExportPage })))
 
 const router = createBrowserRouter([
   // ─── Routes publiques ─────────────────────────────────────
@@ -101,6 +108,32 @@ const router = createBrowserRouter([
               { path: '/administration/fournisseurs',      element: <FournisseursPage /> },
               { path: '/administration/nomenclatures',     element: <NomenclaturesPage /> },
               { path: '/notifications',                    element: <NotificationsPage /> },
+
+              // ─── SUPER_ADMIN — Vue nationale MEFB (M9) ────────────────
+              {
+                path: '/super-admin/dashboard',
+                element: (
+                  <RoleGuard permission={PERMISSIONS.CONSOLIDATION_NATIONALE} fallback={<AccesRefuse />}>
+                    <LazyPage><DashboardMefbPage /></LazyPage>
+                  </RoleGuard>
+                ),
+              },
+              {
+                path: '/super-admin/m9',
+                element: (
+                  <RoleGuard permission={PERMISSIONS.CONSOLIDATION_NATIONALE} fallback={<AccesRefuse />}>
+                    <LazyPage><M9ConsolidationPage /></LazyPage>
+                  </RoleGuard>
+                ),
+              },
+              {
+                path: '/super-admin/lolf',
+                element: (
+                  <RoleGuard permission={PERMISSIONS.CONSOLIDATION_NATIONALE} fallback={<AccesRefuse />}>
+                    <LazyPage><LolfExportPage /></LazyPage>
+                  </RoleGuard>
+                ),
+              },
             ],
           },
         ],

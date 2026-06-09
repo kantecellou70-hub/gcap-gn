@@ -93,9 +93,11 @@ const ROLE_PERMISSIONS: Record<string, Role[]> = {
   'users.manage':        ['SUPER_ADMIN', 'ADMIN_MINISTERE'],
   'audit.consulter':     ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'AUDITEUR', 'CF'],
   // M6 — Comptabilité matières
-  'matieres.gerer':      ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'COMPTABLE_MATIERES'],
-  'matieres.valider':    ['SUPER_ADMIN', 'ADMIN_MINISTERE'],
-  'inventaire.clore':    ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'COMPTABLE_MATIERES'],
+  'matieres.gerer':           ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'COMPTABLE_MATIERES'],
+  'matieres.valider':         ['SUPER_ADMIN', 'ADMIN_MINISTERE'],
+  'inventaire.clore':         ['SUPER_ADMIN', 'ADMIN_MINISTERE', 'COMPTABLE_MATIERES'],
+  // M9 — Consolidation nationale (SUPER_ADMIN uniquement — cross-tenant)
+  'consolidation.nationale':  ['SUPER_ADMIN'],
 }
 
 export function canDo(action: string, userRoles: Role[]): boolean {

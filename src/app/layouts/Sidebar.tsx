@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Wallet, FileText, ClipboardCheck, Send,
   TrendingUp, Package, BookOpen, BarChart2, Shield,
-  Settings, LogOut,
+  Settings, LogOut, Building2, BarChart, FileDown,
 } from 'lucide-react'
 import { LogoGCAPGN } from '@/shared/components/LogoGCAPGN'
 import { useAuth } from '@/app/contexts/AuthContext'
@@ -57,6 +57,15 @@ const NAV_GROUPS: NavGroup[] = [
     rolesRequis: ['SUPER_ADMIN', 'ADMIN_MINISTERE'],
     items: [
       { label: 'Administration', path: '/administration', icon: Settings },
+    ],
+  },
+  {
+    titre: 'VUE NATIONALE MEFB',
+    rolesRequis: ['SUPER_ADMIN'],
+    items: [
+      { label: 'Dashboard national',   path: '/super-admin/dashboard', icon: Building2 },
+      { label: 'Consolidation M9',     path: '/super-admin/m9',        icon: BarChart },
+      { label: 'Export LOLF',          path: '/super-admin/lolf',      icon: FileDown },
     ],
   },
 ]
