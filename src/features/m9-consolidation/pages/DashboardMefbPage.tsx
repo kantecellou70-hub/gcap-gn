@@ -217,13 +217,13 @@ export function DashboardMefbPage() {
               <XAxis type="number" domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   const labels: Record<string, string> = { paye: 'Payé', encours: 'En cours', engage: 'Non engagé' }
-                  return [`${Math.round(value)}%`, labels[name] ?? name]
+                  return [`${Math.round(Number(value ?? 0))}%`, labels[String(name)] ?? String(name)]
                 }}
-                labelFormatter={(label: string) => {
-                  const item = barData.find((d) => d.name === label)
-                  return item?.fullName ?? label
+                labelFormatter={(label) => {
+                  const item = barData.find((d) => d.name === String(label))
+                  return item?.fullName ?? String(label)
                 }}
               />
               <ReferenceLine x={50} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: '50%', position: 'top', fontSize: 10, fill: '#94a3b8' }} />
@@ -338,7 +338,7 @@ export function DashboardMefbPage() {
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="mois" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1_000_000_000)}Mrd`} />
-            <Tooltip formatter={(v: number) => formatGNF(v)} />
+            <Tooltip formatter={(v) => formatGNF(Number(v ?? 0))} />
             <Legend iconType="plainline" wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="montant_engage" name="Engagements cumulés" stroke={COLOR_ENGAGE} dot={false} strokeWidth={2} />
             <Line type="monotone" dataKey="montant_paye" name="Paiements cumulés" stroke={COLOR_PAYE} dot={false} strokeWidth={2} />

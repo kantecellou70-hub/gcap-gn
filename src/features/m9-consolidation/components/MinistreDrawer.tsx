@@ -129,8 +129,8 @@ function PaiementsOnglet({ m }: { m: ExecutionMinistere }) {
               <XAxis dataKey="mois" tickFormatter={(v: number) => MOIS_LABELS[v - 1]} tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1_000_000)}M`} />
               <Tooltip
-                formatter={(value: number, name: string) => [formatGNF(value), name === 'montant_paye' ? 'Payé' : 'Engagé']}
-                labelFormatter={(l: number) => MOIS_LABELS[l - 1]}
+                formatter={(value, name) => [formatGNF(Number(value ?? 0)), name === 'montant_paye' ? 'Payé' : 'Engagé']}
+                labelFormatter={(l) => MOIS_LABELS[Number(l) - 1]}
               />
               <Line type="monotone" dataKey="montant_paye" stroke="#009A44" dot={false} strokeWidth={2} />
               <Line type="monotone" dataKey="montant_engage" stroke="#6366f1" dot={false} strokeWidth={2} />
@@ -172,7 +172,7 @@ function RecettesOnglet({ m }: { m: ExecutionMinistere }) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1_000_000)}M`} />
-          <Tooltip formatter={(v: number) => formatGNF(v)} />
+          <Tooltip formatter={(v) => formatGNF(Number(v ?? 0))} />
           <Bar dataKey="value" fill="#009A44" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

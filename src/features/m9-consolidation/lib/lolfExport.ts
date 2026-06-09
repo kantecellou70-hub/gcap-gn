@@ -161,7 +161,7 @@ export async function exportLolfPdf(
   stats: NationalExercice
 ): Promise<void> {
   const { default: jsPDF } = await import('jspdf')
-  const { default: autoTable } = await import('jspdf-autotable')
+  const { autoTable } = await import('jspdf-autotable')
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
 
@@ -302,7 +302,7 @@ export async function exportLolfPdf(
       8: { cellWidth: 14, halign: 'center' },
       9: { cellWidth: 14, halign: 'center' },
     },
-    didParseCell: (hookData) => {
+    didParseCell: (hookData: import('jspdf-autotable').CellHookData) => {
       // Ligne total en gras
       if (hookData.row.index === data.length) {
         hookData.cell.styles.fontStyle = 'bold'
