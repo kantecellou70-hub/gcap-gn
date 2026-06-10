@@ -19,11 +19,12 @@ export interface CreateMinistereUserPayload {
   tenant_id: string
 }
 
-// Retourne tous les tenants (y compris SUSPENDU) avec le nombre d'utilisateurs
+// Retourne tous les tenants (y compris SUSPENDU) avec le nombre d'utilisateurs actifs.
+// "Configuré" = au moins 1 user_profile actif — même définition que le dashboard M9.
 export async function fetchTenantsAvecStats(): Promise<TenantAvecStats[]> {
   const [tenantsRes, profilesRes] = await Promise.all([
     supabase.from('tenants').select('*').order('nom'),
-    supabase.from('user_profiles').select('tenant_id'),
+    supabase.from('user_profiles').select('tenant_id').eq('actif', true),
   ])
 
   if (tenantsRes.error) throw new Error(tenantsRes.error.message)

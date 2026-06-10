@@ -33,6 +33,19 @@ EXPECTED_MIGRATIONS=(
   "010_nomenclature_budgetaire"
   "011_storage_engagements"
   "012_exercices_rls_update"
+  "013_notifications"
+  "014_notifications_triggers"
+  "015_notifications_triggers_manquants"
+  "016_mfa_audit"
+  "017_audit_signature_archivage"
+  "018_performance_indexes"
+  "019_backup_verification"
+  "020_m9_consolidation"
+  "021_seed_ministeres_guinee"
+  "022_tenants_rls_super_admin"
+  "023_sandbox_tenant"
+  "024_reset_donnees_test"
+  "025_v_users_actifs_par_tenant"
 )
 
 # ─── Couleurs ─────────────────────────────────────────────────────────────────

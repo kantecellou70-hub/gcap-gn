@@ -63,55 +63,60 @@ export async function fetchExecutionNationale(
     supabase
       .from('v_execution_nationale')
       .select('*')
-      .eq('annee', annee),
+      .eq('annee', annee)
+      // Tri déterministe : si un tenant a plusieurs exercices pour la même année
+      // (budget rectificatif), le Map garde le dernier — OUVERT > CLOTURE alphabétiquement.
+      .order('tenant_id')
+      .order('exercice_statut'),
     supabase
       .from('tenants')
       .select('id, nom, code')
       .eq('statut', 'ACTIF')
       .order('nom'),
+    // "Configuré" = au moins 1 user_profile actif.
+    // Même définition que Administration > Gestion des ministères (tenantsAdmin-api).
+    // Vue agrégée (migration 025) : retourne 1 ligne par tenant, pas 1 ligne par user.
+    // Élimine le plafond implicite de 1000 lignes de PostgREST.
     supabase
-      .from('user_profiles')
-      .select('tenant_id')
-      .eq('actif', true),
+      .from('v_users_actifs_par_tenant')
+      .select('tenant_id, nb_users'),
   ])
 
   if (execError)   throw new Error(execError.message)
   if (tenantError) throw new Error(tenantError.message)
   if (userError)   throw new Error(userError.message)
 
-  // Nombre d'utilisateurs actifs par tenant
-  const nbUsers = new Map<string, number>()
-  for (const row of (userCounts ?? [])) {
-    const tid = row.tenant_id as string
-    nbUsers.set(tid, (nbUsers.get(tid) ?? 0) + 1)
-  }
+  // Nombre d'utilisateurs actifs par tenant (1 ligne par tenant depuis la vue)
+  const nbUsers = new Map<string, number>(
+    (userCounts ?? []).map((r) => [r.tenant_id as string, (r.nb_users as number) ?? 0])
+  )
 
   // Données d'exécution indexées par tenant
   const execMap = new Map(
     (execData ?? []).map((r) => [r.tenant_id as string, r as Omit<ExecutionMinistere, 'ral' | 'rap'>])
   )
 
+  type WithMeta = ExecutionMinistere & { _hasUsers: boolean }
+
   // Fusionner : execRow prime toujours sur emptyExecution.
   // emptyExecution uniquement si aucune donnée en base ET aucun utilisateur actif.
-  const merged = (tenants ?? []).map((t) => {
+  const merged: WithMeta[] = (tenants ?? []).map((t) => {
     const hasUsers = (nbUsers.get(t.id as string) ?? 0) > 0
     const execRow  = execMap.get(t.id as string)
     const tenant   = t as { id: string; nom: string; code: string }
 
-    if (execRow) return attachRal(execRow)
-    if (!hasUsers) return attachRal(emptyExecution(tenant, annee))
-    return attachRal(emptyExecution(tenant, annee))
+    const result = attachRal(execRow ?? emptyExecution(tenant, annee))
+    return { ...result, _hasUsers: hasUsers }
   })
 
-  // Trier : avec utilisateurs en tête (taux décroissant), sans utilisateurs à la fin
+  // Trier : ministères avec utilisateurs actifs en tête (taux décroissant),
+  // sans utilisateurs à la fin — critère cohérent avec la logique hasUsers du merge.
   merged.sort((a, b) => {
-    const aActif = a.exercice_statut !== 'NON_CONFIGURE'
-    const bActif = b.exercice_statut !== 'NON_CONFIGURE'
-    if (aActif !== bActif) return aActif ? -1 : 1
+    if (a._hasUsers !== b._hasUsers) return a._hasUsers ? -1 : 1
     return b.taux_execution_pct - a.taux_execution_pct
   })
 
-  return merged
+  return merged.map(({ _hasUsers: _, ...rest }) => rest)
 }
 
 export async function fetchAlertesNationales(
@@ -149,8 +154,10 @@ export async function fetchEvolutionMensuelle(
 ): Promise<EvolutionMensuelle[]> {
   assertSuperAdmin(roles)
 
-  const debut = `${annee}-01-01`
-  const fin   = `${annee}-12-31`
+  // Bornes ISO avec timezone explicite + borne haute exclusive (lt) pour éviter
+  // que '2025-12-31' soit interprété comme minuit et exclue le reste du jour.
+  const debut = `${annee}-01-01T00:00:00+00:00`
+  const fin   = `${annee + 1}-01-01T00:00:00+00:00`
 
   const [mandats, engagements] = await Promise.all([
     supabase
@@ -159,14 +166,14 @@ export async function fetchEvolutionMensuelle(
       .eq('tenant_id', tenantId)
       .eq('statut', 'PAYE')
       .gte('date_emission', debut)
-      .lte('date_emission', fin),
+      .lt('date_emission', fin),
     supabase
       .from('engagements_depenses')
       .select('montant_engage, date_creation')
       .eq('tenant_id', tenantId)
       .eq('statut', 'VISE')
       .gte('date_creation', debut)
-      .lte('date_creation', fin),
+      .lt('date_creation', fin),
   ])
 
   if (mandats.error) throw new Error(mandats.error.message)

@@ -16,7 +16,7 @@ function useRoles() {
 export function useExecutionNationale(annee: number) {
   const roles = useRoles()
   return useQuery({
-    queryKey: ['m9', 'execution-nationale', annee],
+    queryKey: ['m9', 'execution-nationale', annee, roles],
     queryFn: () => fetchExecutionNationale(annee, roles),
     staleTime: STALE_TIMES.MEDIUM,
     enabled: annee > 0 && roles.length > 0,
@@ -26,7 +26,7 @@ export function useExecutionNationale(annee: number) {
 export function useAlertesNationales() {
   const roles = useRoles()
   return useQuery({
-    queryKey: ['m9', 'alertes-nationales'],
+    queryKey: ['m9', 'alertes-nationales', roles],
     queryFn: () => fetchAlertesNationales(roles),
     staleTime: STALE_TIMES.MEDIUM,
     enabled: roles.length > 0,
@@ -36,7 +36,7 @@ export function useAlertesNationales() {
 export function useNationalExercices() {
   const roles = useRoles()
   return useQuery({
-    queryKey: ['m9', 'national-exercices'],
+    queryKey: ['m9', 'national-exercices', roles],
     queryFn: () => fetchNationalExercices(roles),
     staleTime: STALE_TIMES.MEDIUM,
     enabled: roles.length > 0,
@@ -46,7 +46,7 @@ export function useNationalExercices() {
 export function useEvolutionMensuelle(tenantId: string, annee: number) {
   const roles = useRoles()
   return useQuery({
-    queryKey: ['m9', 'evolution-mensuelle', tenantId, annee],
+    queryKey: ['m9', 'evolution-mensuelle', tenantId, annee, roles],
     queryFn: () => fetchEvolutionMensuelle(tenantId, annee, roles),
     staleTime: STALE_TIMES.MEDIUM,
     enabled: !!tenantId && annee > 0 && roles.length > 0,

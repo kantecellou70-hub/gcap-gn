@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/shared/lib/supabase'
+import { queryClient } from '@/shared/lib/queryClient'
 import type { UserProfile } from '@/shared/types'
 
 interface AuthContextValue {
@@ -109,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     sessionStorage.removeItem('gcap-active-tenant-id')
     await supabase.auth.signOut()
+    queryClient.clear()
     setProfil(null)
     setUser(null)
   }
