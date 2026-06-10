@@ -23,6 +23,7 @@ Développé par LYNXA SARL (LynxaTech) — Conakry, Guinée
 | **M6 — Matières** | ✅ Terminé | Inventaire biens, interface SICOM (mode simulation) |
 | **M7 — Comptes admin** | ✅ Terminé | Synthèse exercice, RAL, RAP, export PDF |
 | **M8 — Reporting** | ✅ Terminé | Recharts, exports Excel/PDF |
+| **M9 — Consolidation** | ✅ Terminé | Consolidation multi-tenant, synthèses croisées |
 | **M10 — Administration** | ✅ Terminé | Utilisateurs, fournisseurs, exercices, nomenclatures |
 | **Audit** | ✅ Terminé | Journal immuable, signatures HMAC-SHA256, export PDF |
 | **Dashboard** | ✅ Terminé | Vue par rôle, alertes, KPIs |
@@ -37,7 +38,7 @@ Développé par LYNXA SARL (LynxaTech) — Conakry, Guinée
 | **Tour guidé par rôle** | ✅ Terminé | driver.js lazy, 5 tours adaptés (SAFF/CF/ORDONNATEUR/DAFF/AUDITEUR), relançable depuis le menu |
 | **Manuel PDF par rôle** | ✅ Terminé | jsPDF lazy — couverture, rôle LOLF, actions pas-à-pas, bandeau tricolore guinéen |
 | **Sandbox de formation** | ✅ Terminé | Tenant SANDBOX isolé, bannière violette, seed données fictives `[FORMATION]`, lien login |
-| **PWA** | 🔜 À venir | Mode offline complet |
+| **PWA** | ✅ Terminé | Service Worker Workbox, cache runtime nomenclatures/budget/fournisseurs, mode offline partiel |
 
 ---
 
@@ -69,13 +70,13 @@ L'application est **multi-tenant** : chaque ministère ou EPA dispose d'une inst
 | Tour guidé | driver.js (lazy) | v1 |
 | Génération PDF | jsPDF (lazy) | v4 |
 | Tests | Vitest + Testing Library | v1 |
-| Runtime | Node.js | 18.x |
+| Runtime | Node.js | 20.x |
 
 ---
 
 ## Prérequis
 
-- **Node.js** 18.x (⚠️ Node 20+ non encore validé — `util.styleText` manquant)
+- **Node.js** 20.x minimum (requis — déclaré dans `engines` du `package.json`)
 - **npm** 9+
 - Un projet **Supabase** avec les migrations appliquées
 
@@ -208,7 +209,9 @@ src/
 │   ├── matieres/       # M6 — biens, SICOM
 │   ├── comptes-admin/  # M7
 │   ├── reporting/      # M8
+│   ├── m9-consolidation/ # M9 — consolidation multi-tenant, synthèses croisées
 │   ├── administration/ # M10 — utilisateurs, fournisseurs, exercices, nomenclatures
+│   ├── notifications/  # Notifications temps réel — api/, hooks/, pages/
 │   ├── audit/          # Journal immuable, export PDF
 │   ├── health/
 │   │   ├── api/        # healthCheck.ts (Supabase + Auth + DB + Storage + uptime)
@@ -250,6 +253,7 @@ scripts/
 
 supabase/
 └── migrations/
+    ├── 000_seed_check.sql
     ├── 001_initial_schema.sql
     ├── 002_budget_type_credit_vue.sql
     ├── 003_engagements_triggers.sql

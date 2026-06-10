@@ -285,9 +285,15 @@ export function DashboardMefbPage() {
                       <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{formatGNF(m.montant_liquide)}</td>
                       <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{formatGNF(m.montant_paye)}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeTaux(m.taux_execution_pct)}`}>
-                          {m.taux_execution_pct}%
-                        </span>
+                        {m.exercice_statut === 'NON_CONFIGURE' ? (
+                          <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-400">
+                            Non configuré
+                          </span>
+                        ) : (
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeTaux(m.taux_execution_pct)}`}>
+                            {m.taux_execution_pct}%
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {hasAlerte ? (
@@ -312,6 +318,7 @@ export function DashboardMefbPage() {
             </p>
             <div className="flex gap-1">
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-3 py-1 text-xs rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
@@ -319,6 +326,7 @@ export function DashboardMefbPage() {
                 Préc.
               </button>
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1 text-xs rounded border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"

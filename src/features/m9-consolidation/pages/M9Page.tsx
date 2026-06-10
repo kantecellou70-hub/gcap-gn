@@ -148,9 +148,15 @@ export function M9Page() {
                       <td className="px-4 py-3 text-right tabular-nums text-amber-700">{formatGNF(m.ral)}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-red-700">{formatGNF(m.rap)}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeTaux(m.taux_execution_pct)}`}>
-                          {m.taux_execution_pct}%
-                        </span>
+                        {m.exercice_statut === 'NON_CONFIGURE' ? (
+                          <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-400">
+                            Non configuré
+                          </span>
+                        ) : (
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeTaux(m.taux_execution_pct)}`}>
+                            {m.taux_execution_pct}%
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-xs">
                         {delta !== null ? (
@@ -160,13 +166,15 @@ export function M9Page() {
                         ) : '—'}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); void handleVoirM7(m.tenant_id) }}
-                          className="text-xs text-indigo-500 hover:underline"
-                        >
-                          Voir M7
-                        </button>
+                        {m.exercice_statut !== 'NON_CONFIGURE' && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); void handleVoirM7(m.tenant_id) }}
+                            className="text-xs text-indigo-500 hover:underline"
+                          >
+                            Voir M7
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )

@@ -22,20 +22,77 @@ function attachRal(row: Omit<ExecutionMinistere, 'ral' | 'rap'>): ExecutionMinis
   }
 }
 
+function emptyExecution(
+  tenant: { id: string; nom: string; code: string },
+  annee: number
+): Omit<ExecutionMinistere, 'ral' | 'rap'> {
+  return {
+    tenant_id:                   tenant.id,
+    ministere_nom:               tenant.nom,
+    ministere_code:              tenant.code,
+    exercice_id:                 '',
+    annee,
+    exercice_statut:             'NON_CONFIGURE',
+    dotation_totale:             0,
+    credits_consommes:           0,
+    nb_engagements_vises:        0,
+    montant_engage_vise:         0,
+    nb_engagements_en_attente:   0,
+    montant_liquide:             0,
+    montant_paye:                0,
+    montant_en_cours_paiement:   0,
+    recettes_constatees:         0,
+    recettes_recouvrees:         0,
+    taux_execution_pct:          0,
+    taux_engagement_pct:         0,
+  }
+}
+
 export async function fetchExecutionNationale(
   annee: number,
   roles: Role[]
 ): Promise<ExecutionMinistere[]> {
   assertSuperAdmin(roles)
 
-  const { data, error } = await supabase
-    .from('v_execution_nationale')
-    .select('*')
-    .eq('annee', annee)
-    .order('taux_execution_pct', { ascending: false })
+  // 1. Données d'exécution pour l'année (uniquement les tenants avec un exercice)
+  const [{ data: execData, error: execError }, { data: tenants, error: tenantError }] =
+    await Promise.all([
+      supabase
+        .from('v_execution_nationale')
+        .select('*')
+        .eq('annee', annee)
+        .order('taux_execution_pct', { ascending: false }),
+      supabase
+        .from('tenants')
+        .select('id, nom, code')
+        .eq('statut', 'ACTIF')
+        .order('nom'),
+    ])
 
-  if (error) throw new Error(error.message)
-  return (data ?? []).map(attachRal)
+  if (execError)   throw new Error(execError.message)
+  if (tenantError) throw new Error(tenantError.message)
+
+  // 2. Fusionner : les tenants sans exercice obtiennent une ligne à zéro
+  const execMap = new Map(
+    (execData ?? []).map((r) => [r.tenant_id as string, r as Omit<ExecutionMinistere, 'ral' | 'rap'>])
+  )
+
+  const merged = (tenants ?? []).map((t) =>
+    attachRal(
+      execMap.get(t.id as string) ??
+      emptyExecution(t as { id: string; nom: string; code: string }, annee)
+    )
+  )
+
+  // 3. Trier : ministères avec exercice en tête (taux décroissant), sans exercice à la fin
+  merged.sort((a, b) => {
+    const aHas = a.exercice_statut !== 'NON_CONFIGURE'
+    const bHas = b.exercice_statut !== 'NON_CONFIGURE'
+    if (aHas !== bHas) return aHas ? -1 : 1
+    return b.taux_execution_pct - a.taux_execution_pct
+  })
+
+  return merged
 }
 
 export async function fetchAlertesNationales(
