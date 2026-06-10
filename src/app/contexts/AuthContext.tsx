@@ -95,6 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         })
       } else {
+        // SIGNED_OUT via expiration de token ou révocation externe
+        queryClient.clear()
+        sessionStorage.removeItem('gcap-active-tenant-id')
         setProfil(null)
       }
     })
@@ -108,11 +111,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
-    sessionStorage.removeItem('gcap-active-tenant-id')
-    await supabase.auth.signOut()
-    queryClient.clear()
-    setProfil(null)
-    setUser(null)
+    try {
+      await supabase.auth.signOut()
+    } finally {
+      // Nettoyage local garanti même si signOut() échoue réseau
+      sessionStorage.removeItem('gcap-active-tenant-id')
+      queryClient.clear()
+      setProfil(null)
+      setUser(null)
+    }
   }
 
   return (

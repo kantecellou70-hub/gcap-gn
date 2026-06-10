@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTenant } from '@/app/contexts/TenantContext'
+import { useTenant, NATIONAL_TENANT_ID } from '@/app/contexts/TenantContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { useServerPagination } from '@/shared/hooks/useServerPagination'
 import { STALE_TIMES } from '@/shared/lib/queryClient'
@@ -24,7 +24,7 @@ export function useMandats(filtres: MandatFiltres = {}) {
   return useQuery({
     queryKey: ['mandats', tenantId, filtres],
     queryFn:  () => fetchMandats(filtres, tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -43,7 +43,7 @@ export function useMandat(id: string) {
   return useQuery({
     queryKey: ['mandat', id, tenantId],
     queryFn:  () => fetchMandat(id, tenantId!),
-    enabled:  !!tenantId && !!id,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!id,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -53,7 +53,7 @@ export function useLiquidationsValidees() {
   return useQuery({
     queryKey: ['liquidations-validees', tenantId],
     queryFn:  () => fetchLiquidationsValidees(tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }

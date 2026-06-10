@@ -97,7 +97,7 @@ async function seedFournisseurs(tenantId: string): Promise<string[]> {
     { nom: '[FORMATION] Société Guinéenne d\'Informatique', nif: 'NIF-002-FORM', telephone: '+224 620 000 002' },
     { nom: '[FORMATION] BTP Conakry SARL', nif: 'NIF-003-FORM', telephone: '+224 620 000 003' },
     { nom: '[FORMATION] Auto-Guinea Distribution', nif: 'NIF-004-FORM', telephone: '+224 620 000 004' },
-    { nom: '[FORMATION] Cabinet Conseil MEFB', nif: 'NIF-005-FORM', telephone: '+224 620 000 005' },
+    { nom: '[FORMATION] Cabinet Conseil DEMO', nif: 'NIF-005-FORM', telephone: '+224 620 000 005' },
   ]
 
   const ids: string[] = []

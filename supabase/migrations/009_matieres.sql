@@ -2,14 +2,20 @@ BEGIN;
 
 -- ─── Enums ────────────────────────────────────────────────────────────────────
 
-CREATE TYPE etat_bien AS ENUM (
-  'BON', 'ACCEPTABLE', 'MEDIOCRE', 'HORS_SERVICE', 'REFORME'
-);
+DO $$ BEGIN
+  CREATE TYPE etat_bien AS ENUM (
+    'BON', 'ACCEPTABLE', 'MEDIOCRE', 'HORS_SERVICE', 'REFORME'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE categorie_bien AS ENUM (
-  'MOBILIER', 'INFORMATIQUE', 'VEHICULE',
-  'EQUIPEMENT_BUREAU', 'MATERIEL_TECHNIQUE', 'IMMEUBLE', 'AUTRE'
-);
+DO $$ BEGIN
+  CREATE TYPE categorie_bien AS ENUM (
+    'MOBILIER', 'INFORMATIQUE', 'VEHICULE',
+    'EQUIPEMENT_BUREAU', 'MATERIEL_TECHNIQUE', 'IMMEUBLE', 'AUTRE'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── Table biens ──────────────────────────────────────────────────────────────
 
@@ -58,6 +64,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_code_inventaire ON public.biens;
 CREATE TRIGGER trg_code_inventaire
 BEFORE INSERT ON public.biens
 FOR EACH ROW
@@ -73,6 +80,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_biens_updated_at ON public.biens;
 CREATE TRIGGER trg_biens_updated_at
 BEFORE UPDATE ON public.biens
 FOR EACH ROW
@@ -89,11 +97,13 @@ CREATE INDEX IF NOT EXISTS idx_biens_actif       ON public.biens (tenant_id, act
 
 ALTER TABLE public.biens ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS biens_tenant_select ON public.biens;
 CREATE POLICY biens_tenant_select ON public.biens
   FOR SELECT USING (
     tenant_id = (SELECT tenant_id FROM public.user_profiles WHERE id = auth.uid())
   );
 
+DROP POLICY IF EXISTS biens_tenant_insert ON public.biens;
 CREATE POLICY biens_tenant_insert ON public.biens
   FOR INSERT WITH CHECK (
     tenant_id = (SELECT tenant_id FROM public.user_profiles WHERE id = auth.uid())
@@ -104,6 +114,7 @@ CREATE POLICY biens_tenant_insert ON public.biens
     )
   );
 
+DROP POLICY IF EXISTS biens_tenant_update ON public.biens;
 CREATE POLICY biens_tenant_update ON public.biens
   FOR UPDATE USING (
     tenant_id = (SELECT tenant_id FROM public.user_profiles WHERE id = auth.uid())

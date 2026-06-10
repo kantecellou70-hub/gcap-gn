@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTenant } from '@/app/contexts/TenantContext'
+import { useTenant, NATIONAL_TENANT_ID } from '@/app/contexts/TenantContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 import {
   fetchRecettes,
@@ -19,7 +19,7 @@ export function useRecettes(filtres: RecetteFiltres = {}) {
   return useQuery({
     queryKey: ['recettes', tenantId, filtres],
     queryFn:  () => fetchRecettes(filtres, tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: 30_000,
   })
 }
@@ -29,7 +29,7 @@ export function useRecette(id: string) {
   return useQuery({
     queryKey: ['recette', id, tenantId],
     queryFn:  () => fetchRecette(id, tenantId!),
-    enabled:  !!tenantId && !!id,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!id,
   })
 }
 

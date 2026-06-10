@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTenant } from '@/app/contexts/TenantContext'
+import { useTenant, NATIONAL_TENANT_ID } from '@/app/contexts/TenantContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 import {
   fetchLignesBudgetaires,
@@ -20,7 +20,7 @@ export function useLignesBudgetaires(exerciceId: string) {
   return useQuery({
     queryKey: ['lignes-budgetaires', exerciceId, tenantId],
     queryFn:  () => fetchLignesBudgetaires(exerciceId, tenantId!),
-    enabled:  !!tenantId && !!exerciceId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!exerciceId,
   })
 }
 
@@ -30,7 +30,7 @@ export function useLigneBudgetaire(id: string) {
   return useQuery({
     queryKey: ['ligne-budgetaire', id, tenantId],
     queryFn:  () => fetchLigneBudgetaire(id, tenantId!),
-    enabled:  !!tenantId && !!id,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!id,
   })
 }
 
@@ -40,7 +40,7 @@ export function useExercices() {
   return useQuery({
     queryKey: ['exercices', tenantId],
     queryFn:  () => fetchExercices(tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
   })
 }
 

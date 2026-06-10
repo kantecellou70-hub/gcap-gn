@@ -56,8 +56,8 @@ function TenantRow({
         <div className="flex items-center gap-1.5 text-sm text-slate-600">
           <Users size={13} className="text-slate-400" />
           {tenant.nb_utilisateurs === 0
-            ? <span className="text-slate-400">Aucun</span>
-            : <span>{tenant.nb_utilisateurs} utilisateur{tenant.nb_utilisateurs > 1 ? 's' : ''}</span>
+            ? <span className="text-slate-400">Aucun actif</span>
+            : <span>{tenant.nb_utilisateurs} utilisateur{tenant.nb_utilisateurs > 1 ? 's' : ''} actif{tenant.nb_utilisateurs > 1 ? 's' : ''}</span>
           }
         </div>
       </td>
@@ -65,7 +65,7 @@ function TenantRow({
         <StatutBadge statut={tenant.statut_onboarding} />
       </td>
       <td className="px-4 py-3 text-right">
-        {tenant.nb_utilisateurs === 0 ? (
+        {tenant.nb_users_total === 0 ? (
           <button
             type="button"
             onClick={onAdd}

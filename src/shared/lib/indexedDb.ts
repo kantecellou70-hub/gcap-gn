@@ -129,7 +129,6 @@ export async function getCachedNomenclature(
 ): Promise<NomenclatureBudgetaire[]> {
   const db = await getDb()
   const items = await db.getAllFromIndex('nomenclature', 'by-tenant', tenantId)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return items.map(({ _tenantId, ...item }) => item as NomenclatureBudgetaire)
 }
 
@@ -158,7 +157,6 @@ export async function getCachedLignes(
     'by-tenant-exercice',
     [tenantId, exerciceId],
   )
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return items.map(({ _tenantId, _exerciceId, ...l }) => l as LigneBudgetaire)
 }
 
@@ -179,7 +177,6 @@ export async function cacheEngagements(
 export async function getCachedEngagements(tenantId: string): Promise<Engagement[]> {
   const db = await getDb()
   const items = await db.getAllFromIndex('engagements_cache', 'by-tenant', tenantId)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return items.map(({ _tenantId, ...e }) => e as Engagement)
 }
 

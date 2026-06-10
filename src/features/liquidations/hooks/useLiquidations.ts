@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTenant } from '@/app/contexts/TenantContext'
+import { useTenant, NATIONAL_TENANT_ID } from '@/app/contexts/TenantContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { useServerPagination } from '@/shared/hooks/useServerPagination'
 import { STALE_TIMES } from '@/shared/lib/queryClient'
@@ -26,7 +26,7 @@ export function useLiquidations(filtres: LiquidationFiltres = {}) {
   return useQuery({
     queryKey: ['liquidations', tenantId, filtres],
     queryFn:  () => fetchLiquidations(filtres, tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -45,7 +45,7 @@ export function useLiquidation(id: string) {
   return useQuery({
     queryKey: ['liquidation', id, tenantId],
     queryFn:  () => fetchLiquidation(id, tenantId!),
-    enabled:  !!tenantId && !!id,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!id,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -55,7 +55,7 @@ export function useLiquidationsByEngagement(engagementId: string) {
   return useQuery({
     queryKey: ['liquidations-engagement', engagementId, tenantId],
     queryFn:  () => fetchLiquidationsByEngagement(engagementId, tenantId!),
-    enabled:  !!tenantId && !!engagementId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!engagementId,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -65,7 +65,7 @@ export function useEngagementsVises() {
   return useQuery({
     queryKey: ['engagements-vises', tenantId],
     queryFn:  () => fetchEngagementsVises(tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }

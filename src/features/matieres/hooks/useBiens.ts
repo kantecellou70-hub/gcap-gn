@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTenant } from '@/app/contexts/TenantContext'
+import { useTenant, NATIONAL_TENANT_ID } from '@/app/contexts/TenantContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 import {
   fetchBiens,
@@ -20,7 +20,7 @@ export function useBiens(filtres: BienFiltres = {}) {
   return useQuery({
     queryKey:  ['biens', tenantId, filtres],
     queryFn:   () => fetchBiens(filtres, tenantId!),
-    enabled:   !!tenantId,
+    enabled:   !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: 60_000,
   })
 }
@@ -30,7 +30,7 @@ export function useBien(id: string) {
   return useQuery({
     queryKey: ['bien', id, tenantId],
     queryFn:  () => fetchBien(id, tenantId!),
-    enabled:  !!tenantId && !!id,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!id,
   })
 }
 
@@ -39,7 +39,7 @@ export function useBiensParCategorie() {
   return useQuery({
     queryKey:  ['biens-categories', tenantId],
     queryFn:   () => fetchBiensParCategorie(tenantId!),
-    enabled:   !!tenantId,
+    enabled:   !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: 60_000,
   })
 }

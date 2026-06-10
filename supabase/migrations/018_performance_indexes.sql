@@ -2,7 +2,7 @@ BEGIN;
 
 -- Engagements : tri par date (requête la plus fréquente — pagination serveur)
 CREATE INDEX IF NOT EXISTS idx_engagements_tenant_exercice_created
-  ON engagements_depenses(tenant_id, exercice_id, created_at DESC);
+  ON engagements_depenses(tenant_id, exercice_id, date_creation DESC);
 
 -- Engagements : filtre par statut (onglet "En attente de visa")
 CREATE INDEX IF NOT EXISTS idx_engagements_tenant_statut

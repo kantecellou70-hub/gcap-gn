@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTenant } from '@/app/contexts/TenantContext'
+import { useTenant, NATIONAL_TENANT_ID } from '@/app/contexts/TenantContext'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { useServerPagination } from '@/shared/hooks/useServerPagination'
 import { STALE_TIMES } from '@/shared/lib/queryClient'
@@ -23,7 +23,7 @@ export function useEngagements(filtres: EngagementFiltres = {}) {
   return useQuery({
     queryKey: ['engagements', tenantId, filtres],
     queryFn:  () => fetchEngagements(filtres, tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -33,7 +33,7 @@ export function useEngagementsStats(exerciceId?: string) {
   return useQuery({
     queryKey: ['engagements-stats', tenantId, exerciceId],
     queryFn:  () => fetchEngagementsStats({ exerciceId }, tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -52,7 +52,7 @@ export function useEngagement(id: string) {
   return useQuery({
     queryKey: ['engagement', id, tenantId],
     queryFn:  () => fetchEngagement(id, tenantId!),
-    enabled:  !!tenantId && !!id,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID && !!id,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }
@@ -62,7 +62,7 @@ export function useEngagementsEnAttenteVisa() {
   return useQuery({
     queryKey: ['engagements-attente-visa', tenantId],
     queryFn:  () => fetchEngagementsEnAttenteVisa(tenantId!),
-    enabled:  !!tenantId,
+    enabled:  !!tenantId && tenantId !== NATIONAL_TENANT_ID,
     staleTime: STALE_TIMES.DYNAMIC,
   })
 }

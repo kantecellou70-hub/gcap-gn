@@ -112,7 +112,7 @@ const router = createBrowserRouter([
               { path: '/administration/nomenclatures',     element: <NomenclaturesPage /> },
               { path: '/notifications',                    element: <NotificationsPage /> },
 
-              // ─── SUPER_ADMIN — Vue nationale MEFB (M9) ────────────────
+              // ─── SUPER_ADMIN — Vue nationale GCAP-GN (M9) ────────────────
               {
                 path: '/super-admin/dashboard',
                 element: (

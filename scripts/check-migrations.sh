@@ -46,6 +46,9 @@ EXPECTED_MIGRATIONS=(
   "023_sandbox_tenant"
   "024_reset_donnees_test"
   "025_v_users_actifs_par_tenant"
+  "027_rls_v_users_actifs"
+  "028_migrate_mefb_to_demo"
+  "029_fn_evolution_mensuelle"
 )
 
 # ─── Couleurs ─────────────────────────────────────────────────────────────────

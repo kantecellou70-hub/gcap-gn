@@ -30,6 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_recettes_statut   ON public.recettes(tenant_id, s
 
 ALTER TABLE public.recettes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "recettes_tenant_isolation" ON public.recettes;
 CREATE POLICY "recettes_tenant_isolation" ON public.recettes
   USING (tenant_id = public.fn_get_tenant_id());
 

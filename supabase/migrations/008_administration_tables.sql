@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS public.fournisseurs (
 CREATE INDEX IF NOT EXISTS idx_fournisseurs_tenant ON public.fournisseurs(tenant_id);
 
 ALTER TABLE public.fournisseurs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "fournisseurs_tenant"  ON public.fournisseurs;
+DROP POLICY IF EXISTS "fournisseurs_insert"  ON public.fournisseurs;
+DROP POLICY IF EXISTS "fournisseurs_update"  ON public.fournisseurs;
 CREATE POLICY "fournisseurs_tenant"  ON public.fournisseurs USING          (tenant_id = public.fn_get_tenant_id());
 CREATE POLICY "fournisseurs_insert"  ON public.fournisseurs FOR INSERT WITH CHECK (tenant_id = public.fn_get_tenant_id());
 CREATE POLICY "fournisseurs_update"  ON public.fournisseurs FOR UPDATE USING (tenant_id = public.fn_get_tenant_id());

@@ -30,6 +30,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_numero_engagement ON engagements_depenses;
 CREATE TRIGGER trg_numero_engagement
   BEFORE INSERT ON engagements_depenses
   FOR EACH ROW
@@ -76,6 +77,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_maj_montant_engage ON engagements_depenses;
 CREATE TRIGGER trg_maj_montant_engage
   AFTER UPDATE ON engagements_depenses
   FOR EACH ROW

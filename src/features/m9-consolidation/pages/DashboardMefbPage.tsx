@@ -126,7 +126,7 @@ export function DashboardMefbPage() {
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       {/* Titre */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard National MEFB</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard National GCAP-GN</h1>
         <p className="text-sm text-slate-500 mt-1">Vue consolidée cross-ministères — SUPER_ADMIN uniquement</p>
       </div>
 

@@ -48,6 +48,13 @@ function emptyExecution(
   }
 }
 
+// Ordre de priorité pour le tri par statut tenant (finding #7)
+const TENANT_STATUT_ORDER: Record<string, number> = {
+  ACTIF:    0,
+  SUSPENDU: 1,
+  INACTIF:  2,
+}
+
 export async function fetchExecutionNationale(
   annee: number,
   roles: Role[]
@@ -68,27 +75,28 @@ export async function fetchExecutionNationale(
       // (budget rectificatif), le Map garde le dernier — OUVERT > CLOTURE alphabétiquement.
       .order('tenant_id')
       .order('exercice_statut'),
+    // Finding #7 : inclure ACTIF et SUSPENDU pour ne pas sous-évaluer les dépenses
+    // réelles d'un ministère suspendu en cours d'exercice dans les rapports LOLF.
     supabase
       .from('tenants')
-      .select('id, nom, code')
-      .eq('statut', 'ACTIF')
+      .select('id, nom, code, statut')
+      .in('statut', ['ACTIF', 'SUSPENDU'])
       .order('nom'),
     // "Configuré" = au moins 1 user_profile actif.
     // Même définition que Administration > Gestion des ministères (tenantsAdmin-api).
-    // Vue agrégée (migration 025) : retourne 1 ligne par tenant, pas 1 ligne par user.
-    // Élimine le plafond implicite de 1000 lignes de PostgREST.
-    supabase
-      .from('v_users_actifs_par_tenant')
-      .select('tenant_id, nb_users'),
+    // RPC SECURITY DEFINER (migration 027) : agrégat côté serveur, accès direct à la
+    // vue révoqué pour les rôles non-service_role.
+    supabase.rpc('fn_users_actifs_par_tenant'),
   ])
 
   if (execError)   throw new Error(execError.message)
   if (tenantError) throw new Error(tenantError.message)
   if (userError)   throw new Error(userError.message)
 
-  // Nombre d'utilisateurs actifs par tenant (1 ligne par tenant depuis la vue)
+  // Nombre d'utilisateurs actifs par tenant (1 ligne par tenant depuis le RPC)
   const nbUsers = new Map<string, number>(
-    (userCounts ?? []).map((r) => [r.tenant_id as string, (r.nb_users as number) ?? 0])
+    ((userCounts ?? []) as Array<{ tenant_id: string; nb_users: number }>)
+      .map((r) => [r.tenant_id, r.nb_users ?? 0])
   )
 
   // Données d'exécution indexées par tenant
@@ -96,27 +104,36 @@ export async function fetchExecutionNationale(
     (execData ?? []).map((r) => [r.tenant_id as string, r as Omit<ExecutionMinistere, 'ral' | 'rap'>])
   )
 
-  type WithMeta = ExecutionMinistere & { _hasUsers: boolean }
+  type TenantStatut = 'ACTIF' | 'SUSPENDU' | 'INACTIF'
+  type WithMeta = ExecutionMinistere & {
+    _hasUsers:     boolean
+    _tenantStatut: TenantStatut
+  }
 
   // Fusionner : execRow prime toujours sur emptyExecution.
-  // emptyExecution uniquement si aucune donnée en base ET aucun utilisateur actif.
+  // emptyExecution uniquement si aucune donnée en base pour ce tenant.
   const merged: WithMeta[] = (tenants ?? []).map((t) => {
-    const hasUsers = (nbUsers.get(t.id as string) ?? 0) > 0
-    const execRow  = execMap.get(t.id as string)
-    const tenant   = t as { id: string; nom: string; code: string }
+    const hasUsers    = (nbUsers.get(t.id as string) ?? 0) > 0
+    const execRow     = execMap.get(t.id as string)
+    const tenant      = t as { id: string; nom: string; code: string; statut: TenantStatut }
 
     const result = attachRal(execRow ?? emptyExecution(tenant, annee))
-    return { ...result, _hasUsers: hasUsers }
+    return { ...result, _hasUsers: hasUsers, _tenantStatut: tenant.statut }
   })
 
-  // Trier : ministères avec utilisateurs actifs en tête (taux décroissant),
-  // sans utilisateurs à la fin — critère cohérent avec la logique hasUsers du merge.
+  // Tri finding #7 :
+  // 1. Ministères avec utilisateurs actifs en tête
+  // 2. ACTIF avant SUSPENDU (dépenses réelles mais plus d'activité)
+  // 3. Taux d'exécution décroissant à égalité
   merged.sort((a, b) => {
     if (a._hasUsers !== b._hasUsers) return a._hasUsers ? -1 : 1
+    const aOrder = TENANT_STATUT_ORDER[a._tenantStatut] ?? 3
+    const bOrder = TENANT_STATUT_ORDER[b._tenantStatut] ?? 3
+    if (aOrder !== bOrder) return aOrder - bOrder
     return b.taux_execution_pct - a.taux_execution_pct
   })
 
-  return merged.map(({ _hasUsers: _, ...rest }) => rest)
+  return merged.map(({ _hasUsers, _tenantStatut, ...rest }) => rest)
 }
 
 export async function fetchAlertesNationales(
@@ -154,44 +171,37 @@ export async function fetchEvolutionMensuelle(
 ): Promise<EvolutionMensuelle[]> {
   assertSuperAdmin(roles)
 
-  // Bornes ISO avec timezone explicite + borne haute exclusive (lt) pour éviter
-  // que '2025-12-31' soit interprété comme minuit et exclue le reste du jour.
-  const debut = `${annee}-01-01T00:00:00+00:00`
-  const fin   = `${annee + 1}-01-01T00:00:00+00:00`
-
+  // Finding #8 : agrégation côté serveur via RPC SECURITY DEFINER (migration 029).
+  // Les queries directes sur mandats_paiement et engagements_depenses étaient
+  // plafonnées à 1000 lignes par PostgREST — troncature silencieuse sur les
+  // gros ministères. Les RPC retournent au plus 12 lignes (1 par mois).
+  // make_timestamptz côté serveur garantit les bornes UTC.
   const [mandats, engagements] = await Promise.all([
-    supabase
-      .from('mandats_paiement')
-      .select('montant, date_emission')
-      .eq('tenant_id', tenantId)
-      .eq('statut', 'PAYE')
-      .gte('date_emission', debut)
-      .lt('date_emission', fin),
-    supabase
-      .from('engagements_depenses')
-      .select('montant_engage, date_creation')
-      .eq('tenant_id', tenantId)
-      .eq('statut', 'VISE')
-      .gte('date_creation', debut)
-      .lt('date_creation', fin),
+    supabase.rpc('fn_evolution_mandats_mensuels', {
+      p_tenant_id: tenantId,
+      p_annee:     annee,
+    }),
+    supabase.rpc('fn_evolution_engagements_mensuels', {
+      p_tenant_id: tenantId,
+      p_annee:     annee,
+    }),
   ])
 
-  if (mandats.error) throw new Error(mandats.error.message)
+  if (mandats.error)     throw new Error(mandats.error.message)
   if (engagements.error) throw new Error(engagements.error.message)
 
+  // Initialiser les 12 mois à 0 — garantit un tableau complet même si
+  // certains mois n'ont aucun mouvement (RPC ne retourne pas de ligne pour eux).
   const moisMap: Record<number, EvolutionMensuelle> = {}
   for (let m = 1; m <= 12; m++) {
     moisMap[m] = { mois: m, montant_paye: 0, montant_engage: 0 }
   }
 
-  for (const row of mandats.data ?? []) {
-    const mois = new Date(row.date_emission as string).getMonth() + 1
-    moisMap[mois].montant_paye += row.montant as number
+  for (const row of (mandats.data ?? []) as Array<{ mois: number; montant_paye: number }>) {
+    moisMap[row.mois].montant_paye += Number(row.montant_paye)
   }
-
-  for (const row of engagements.data ?? []) {
-    const mois = new Date(row.date_creation as string).getMonth() + 1
-    moisMap[mois].montant_engage += row.montant_engage as number
+  for (const row of (engagements.data ?? []) as Array<{ mois: number; montant_engage: number }>) {
+    moisMap[row.mois].montant_engage += Number(row.montant_engage)
   }
 
   return Object.values(moisMap)
@@ -202,5 +212,10 @@ export async function fetchDataForLolfExport(
   roles: Role[]
 ): Promise<ExecutionMinistere[]> {
   const all = await fetchExecutionNationale(annee, roles)
-  return all.filter((m) => m.exercice_statut !== 'NON_CONFIGURE')
+  // Double garde : exclure uniquement les ministères NON_CONFIGURE et les dotations nulles.
+  // Les tenants SUSPENDU sont INCLUS — leurs dépenses engagées sont réelles et doivent
+  // figurer dans les rapports LOLF transmis à la Cour des Comptes.
+  return all.filter(
+    (m) => m.exercice_statut !== 'NON_CONFIGURE' && m.dotation_totale > 0
+  )
 }

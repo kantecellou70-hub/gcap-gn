@@ -6,12 +6,16 @@ import { useAuth } from './AuthContext'
 
 const SESSION_KEY = 'gcap-active-tenant-id'
 
+// Sentinelle : activeTenantId prend cette valeur quand le SUPER_ADMIN
+// navigue en vue nationale. Aucune requête Supabase ne doit jamais
+// recevoir cette valeur comme tenant_id.
+export const NATIONAL_TENANT_ID = '__national__'
+
 interface TenantContextValue {
   // Tenant d'appartenance du compte (immuable)
   tenantOrigine: Tenant | null
 
-  // Tenant actuellement affiché — peut différer pour le SUPER_ADMIN
-  // Toutes les requêtes features utilisent tenantId = tenantActif?.id
+  // Tenant actuellement affiché — null en vue nationale
   tenantActif: Tenant | null
 
   // Alias backward-compatible (= tenantActif)
@@ -25,7 +29,7 @@ interface TenantContextValue {
   // Tous les tenants actifs (chargés uniquement pour SUPER_ADMIN)
   tousLesTenants: Tenant[]
 
-  // Basculer vers un autre tenant (SUPER_ADMIN uniquement)
+  // Basculer vers un autre tenant ou vers la vue nationale (SUPER_ADMIN uniquement)
   switchTenant: (tenantId: string) => Promise<void>
 
   // Revenir au tenant d'appartenance
@@ -33,6 +37,9 @@ interface TenantContextValue {
 
   // Vrai si le SUPER_ADMIN inspecte un tenant différent du sien
   isImpersonating: boolean
+
+  // Vrai si le SUPER_ADMIN est en vue nationale (tenantActif = null)
+  isNationalView: boolean
 
   isLoading: boolean
   hasNoExercice: boolean
@@ -93,12 +100,13 @@ async function loadTousLesTenants(): Promise<Tenant[]> {
 export function TenantProvider({ children }: { children: ReactNode }) {
   const { profil } = useAuth()
 
-  const [tenantOrigine, setTenantOrigine]   = useState<Tenant | null>(null)
+  const [tenantOrigine, setTenantOrigine]    = useState<Tenant | null>(null)
   const [tenantActif,   setTenantActifState] = useState<Tenant | null>(null)
   const [exerciceActif, setExerciceActif]    = useState<ExerciceBudgetaire | null>(null)
   const [tousLesTenants, setTousLesTenants]  = useState<Tenant[]>([])
   const [isLoading,      setIsLoading]       = useState(false)
   const [hasNoExercice,  setHasNoExercice]   = useState(false)
+  const [isNationalView, setIsNationalView]  = useState(false)
 
   const isSuperAdmin = profil?.roles?.includes('SUPER_ADMIN') ?? false
 
@@ -110,6 +118,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       setTenantActifState(null)
       setExerciceActif(null)
       setTousLesTenants([])
+      setIsNationalView(false)
       return
     }
 
@@ -122,26 +131,35 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       isSuperAdmin ? loadTousLesTenants() : Promise.resolve([]),
     ]
 
-    // Si un tenant sauvegardé existe et diffère de l'origine, on le charge aussi
-    if (savedId && savedId !== originId) {
+    // Charger le tenant sauvegardé uniquement si c'est un vrai UUID (pas la sentinelle)
+    if (savedId && savedId !== originId && savedId !== NATIONAL_TENANT_ID) {
       promises.push(loadTenant(savedId))
     }
 
     Promise.all(promises).then(async (results) => {
-      const origine  = results[0] as Tenant | null
-      const tous     = results[1] as Tenant[]
-      const saved    = (results[2] as Tenant | null) ?? null
+      const origine = results[0] as Tenant | null
+      const tous    = results[1] as Tenant[]
+      const saved   = (results[2] as Tenant | null) ?? null
 
       setTenantOrigine(origine)
       setTousLesTenants(tous)
 
-      const actif = saved ?? origine
-      setTenantActifState(actif)
+      if (savedId === NATIONAL_TENANT_ID) {
+        // Restaurer la vue nationale depuis sessionStorage
+        setIsNationalView(true)
+        setTenantActifState(null)
+        setExerciceActif(null)
+        setHasNoExercice(false)
+      } else {
+        setIsNationalView(false)
+        const actif = saved ?? origine
+        setTenantActifState(actif)
 
-      if (actif) {
-        const exercice = await loadExerciceActif(actif.id)
-        setExerciceActif(exercice)
-        setHasNoExercice(!exercice)
+        if (actif) {
+          const exercice = await loadExerciceActif(actif.id)
+          setExerciceActif(exercice)
+          setHasNoExercice(!exercice)
+        }
       }
 
       setIsLoading(false)
@@ -152,7 +170,16 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const switchTenant = useCallback(async (id: string) => {
     if (!isSuperAdmin) throw new Error('switchTenant réservé au SUPER_ADMIN')
 
-    // Chercher d'abord dans la liste déjà chargée
+    if (id === NATIONAL_TENANT_ID) {
+      sessionStorage.setItem(SESSION_KEY, NATIONAL_TENANT_ID)
+      setIsNationalView(true)
+      setTenantActifState(null)
+      setExerciceActif(null)
+      setHasNoExercice(false)
+      return
+    }
+
+    setIsNationalView(false)
     const fromCache = tousLesTenants.find((t) => t.id === id)
     const cible = fromCache ?? await loadTenant(id)
     if (!cible) throw new Error(`Tenant introuvable : ${id}`)
@@ -167,6 +194,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   // ── resetTenant ────────────────────────────────────────────────────────────
   const resetTenant = useCallback(() => {
     sessionStorage.removeItem(SESSION_KEY)
+    setIsNationalView(false)
     setTenantActifState(tenantOrigine)
     if (tenantOrigine) {
       loadExerciceActif(tenantOrigine.id).then((e) => {
@@ -182,7 +210,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     tenantActif.id !== tenantOrigine.id
   )
 
-  // tenantId = id du tenant actif (les hooks features utilisent cet alias)
+  // tenantId = id du tenant actif ; null en vue nationale (bloque les queries features)
   const tenantId = tenantActif?.id ?? null
 
   return (
@@ -198,11 +226,13 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         switchTenant,
         resetTenant,
         isImpersonating,
+        isNationalView,
         isLoading,
         hasNoExercice,
       }}
     >
-      {hasNoExercice && !isImpersonating && (
+      {/* Bannière exercice manquant — masquée en vue nationale */}
+      {hasNoExercice && !isImpersonating && !isNationalView && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
           ⚠️ Aucun exercice budgétaire ouvert pour votre ministère. Contactez l'administrateur.
         </div>
