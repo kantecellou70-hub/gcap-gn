@@ -54,41 +54,58 @@ export async function fetchExecutionNationale(
 ): Promise<ExecutionMinistere[]> {
   assertSuperAdmin(roles)
 
-  // 1. Données d'exécution pour l'année (uniquement les tenants avec un exercice)
-  const [{ data: execData, error: execError }, { data: tenants, error: tenantError }] =
-    await Promise.all([
-      supabase
-        .from('v_execution_nationale')
-        .select('*')
-        .eq('annee', annee)
-        .order('taux_execution_pct', { ascending: false }),
-      supabase
-        .from('tenants')
-        .select('id, nom, code')
-        .eq('statut', 'ACTIF')
-        .order('nom'),
-    ])
+  // 3 requêtes en parallèle : exécution, liste tenants, nombre d'utilisateurs par tenant
+  const [
+    { data: execData,    error: execError    },
+    { data: tenants,     error: tenantError  },
+    { data: userCounts,  error: userError    },
+  ] = await Promise.all([
+    supabase
+      .from('v_execution_nationale')
+      .select('*')
+      .eq('annee', annee),
+    supabase
+      .from('tenants')
+      .select('id, nom, code')
+      .eq('statut', 'ACTIF')
+      .order('nom'),
+    supabase
+      .from('user_profiles')
+      .select('tenant_id')
+      .eq('actif', true),
+  ])
 
   if (execError)   throw new Error(execError.message)
   if (tenantError) throw new Error(tenantError.message)
+  if (userError)   throw new Error(userError.message)
 
-  // 2. Fusionner : les tenants sans exercice obtiennent une ligne à zéro
+  // Nombre d'utilisateurs actifs par tenant
+  const nbUsers = new Map<string, number>()
+  for (const row of (userCounts ?? [])) {
+    const tid = row.tenant_id as string
+    nbUsers.set(tid, (nbUsers.get(tid) ?? 0) + 1)
+  }
+
+  // Données d'exécution indexées par tenant
   const execMap = new Map(
     (execData ?? []).map((r) => [r.tenant_id as string, r as Omit<ExecutionMinistere, 'ral' | 'rap'>])
   )
 
-  const merged = (tenants ?? []).map((t) =>
-    attachRal(
-      execMap.get(t.id as string) ??
-      emptyExecution(t as { id: string; nom: string; code: string }, annee)
-    )
-  )
+  // Fusionner : configuré = a au moins 1 utilisateur actif (cohérent avec Gestion ministères)
+  const merged = (tenants ?? []).map((t) => {
+    const hasUsers = (nbUsers.get(t.id as string) ?? 0) > 0
+    const execRow  = execMap.get(t.id as string)
+    const tenant   = t as { id: string; nom: string; code: string }
 
-  // 3. Trier : ministères avec exercice en tête (taux décroissant), sans exercice à la fin
+    if (!hasUsers) return attachRal(emptyExecution(tenant, annee))
+    return attachRal(execRow ?? emptyExecution(tenant, annee))
+  })
+
+  // Trier : avec utilisateurs en tête (taux décroissant), sans utilisateurs à la fin
   merged.sort((a, b) => {
-    const aHas = a.exercice_statut !== 'NON_CONFIGURE'
-    const bHas = b.exercice_statut !== 'NON_CONFIGURE'
-    if (aHas !== bHas) return aHas ? -1 : 1
+    const aActif = a.exercice_statut !== 'NON_CONFIGURE'
+    const bActif = b.exercice_statut !== 'NON_CONFIGURE'
+    if (aActif !== bActif) return aActif ? -1 : 1
     return b.taux_execution_pct - a.taux_execution_pct
   })
 
