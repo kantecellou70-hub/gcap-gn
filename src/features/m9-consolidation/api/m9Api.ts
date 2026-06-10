@@ -91,14 +91,16 @@ export async function fetchExecutionNationale(
     (execData ?? []).map((r) => [r.tenant_id as string, r as Omit<ExecutionMinistere, 'ral' | 'rap'>])
   )
 
-  // Fusionner : configuré = a au moins 1 utilisateur actif (cohérent avec Gestion ministères)
+  // Fusionner : execRow prime toujours sur emptyExecution.
+  // emptyExecution uniquement si aucune donnée en base ET aucun utilisateur actif.
   const merged = (tenants ?? []).map((t) => {
     const hasUsers = (nbUsers.get(t.id as string) ?? 0) > 0
     const execRow  = execMap.get(t.id as string)
     const tenant   = t as { id: string; nom: string; code: string }
 
+    if (execRow) return attachRal(execRow)
     if (!hasUsers) return attachRal(emptyExecution(tenant, annee))
-    return attachRal(execRow ?? emptyExecution(tenant, annee))
+    return attachRal(emptyExecution(tenant, annee))
   })
 
   // Trier : avec utilisateurs en tête (taux décroissant), sans utilisateurs à la fin
@@ -192,5 +194,6 @@ export async function fetchDataForLolfExport(
   annee: number,
   roles: Role[]
 ): Promise<ExecutionMinistere[]> {
-  return fetchExecutionNationale(annee, roles)
+  const all = await fetchExecutionNationale(annee, roles)
+  return all.filter((m) => m.exercice_statut !== 'NON_CONFIGURE')
 }
